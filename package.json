@@ -1,6 +1,6 @@
 {
   "name": "labaflow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "engines": { "node": ">=22.13.0" },
   "scripts": {
@@ -12,15 +12,17 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
     "next": "16.2.6",
+    "qrcode": "^1.5.4",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "6.0.2",
-    "@vitejs/plugin-rsc": "0.5.26",
     "@types/node": "22.19.19",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
     "react-server-dom-webpack": "19.2.6",
