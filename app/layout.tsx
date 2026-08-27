@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./order-polish.css";
 import "./qr.css";
 import ServiceEditEnhancer from "./ServiceEditEnhancer";
 
