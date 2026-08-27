@@ -1,20 +1,22 @@
 "use client";
 
 import { FormEvent,useEffect,useMemo,useState } from "react";
+import QRCode from "qrcode";
 import { supabase } from "../../lib/supabase";
 
 type Branch={id:string;name:string};
 type Customer={id:string;customer_code:string;full_name:string;mobile:string|null;email:string|null;preferred_branch_id:string|null;loyalty_points:number;lifetime_points:number;lifetime_visits:number;lifetime_spend:number};
 type Address={id:string;label:string;address_line:string;barangay:string|null;city:string|null;province:string|null;postal_code:string|null;landmark:string|null;is_default:boolean;active:boolean};
 type Level={id:string;name:string;minimum_points:number;active:boolean};
+type QrState={customer:Customer;image:string}|null;
 const peso=new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"});
+const blankAddress={id:"",label:"Home",address_line:"",barangay:"",city:"",province:"",postal_code:"",landmark:"",is_default:false};
 
 export default function CustomersPage(){
  const [customers,setCustomers]=useState<Customer[]>([]),[branches,setBranches]=useState<Branch[]>([]),[levels,setLevels]=useState<Level[]>([]),[message,setMessage]=useState("");
- const [search,setSearch]=useState(""),[editing,setEditing]=useState<Customer|null>(null),[addresses,setAddresses]=useState<Address[]>([]),[distances,setDistances]=useState<Record<string,string>>({});
+ const [search,setSearch]=useState(""),[levelFilter,setLevelFilter]=useState("all"),[editing,setEditing]=useState<Customer|null>(null),[qr,setQr]=useState<QrState>(null),[addresses,setAddresses]=useState<Address[]>([]),[distances,setDistances]=useState<Record<string,string>>({});
  const [profile,setProfile]=useState({full_name:"",mobile:"",email:"",preferred_branch_id:""});
- const [addressForm,setAddressForm]=useState({id:"",label:"Home",address_line:"",barangay:"",city:"",province:"",postal_code:"",landmark:"",is_default:false});
- const blankAddress={id:"",label:"Home",address_line:"",barangay:"",city:"",province:"",postal_code:"",landmark:"",is_default:false};
+ const [addressForm,setAddressForm]=useState(blankAddress);
 
  useEffect(()=>{load()},[]);
  async function load(){
@@ -30,8 +32,11 @@ export default function CustomersPage(){
   setLevels((l.data??[]).map((x:any)=>({...x,minimum_points:Number(x.minimum_points??0)})));
  }
  function levelFor(points:number){return [...levels].filter(l=>l.active&&l.minimum_points<=points).sort((a,b)=>b.minimum_points-a.minimum_points)[0]?.name??"Member"}
- const filtered=useMemo(()=>{const q=search.trim().toLowerCase();return q?customers.filter(c=>`${c.full_name} ${c.customer_code} ${c.mobile??""} ${c.email??""}`.toLowerCase().includes(q)):customers},[customers,search]);
+ function nextLevel(level:Level){const sorted=[...levels].filter(l=>l.active).sort((a,b)=>a.minimum_points-b.minimum_points);const i=sorted.findIndex(l=>l.id===level.id);return i>=0&&i<sorted.length-1?sorted[i+1]:null}
+ const filtered=useMemo(()=>{const q=search.trim().toLowerCase();return customers.filter(c=>{const matchesSearch=!q||`${c.full_name} ${c.customer_code} ${c.mobile??""} ${c.email??""}`.toLowerCase().includes(q);const matchesLevel=levelFilter==="all"||levelFor(c.lifetime_points)===levelFilter;return matchesSearch&&matchesLevel})},[customers,search,levelFilter,levels]);
+ const levelCounts=useMemo(()=>levels.filter(l=>l.active).map(l=>({...l,count:customers.filter(c=>levelFor(c.lifetime_points)===l.name).length})),[customers,levels]);
 
+ async function showQr(c:Customer){const {data,error}=await supabase.rpc("get_customer_qr",{p_customer_id:c.id});if(error){setMessage(error.message);return}const image=await QRCode.toDataURL(`labaflow:${data.qr_token}`,{width:360,margin:2});setQr({customer:c,image})}
  async function openEdit(c:Customer){
   setEditing(c);setProfile({full_name:c.full_name,mobile:c.mobile??"",email:c.email??"",preferred_branch_id:c.preferred_branch_id??""});setAddressForm(blankAddress);
   const [a,d]=await Promise.all([
@@ -40,10 +45,8 @@ export default function CustomersPage(){
   ]);
   if(a.error||d.error){setMessage(a.error?.message||d.error?.message||"Unable to load customer addresses");return}
   setAddresses((a.data??[]) as Address[]);
-  const customerAddressIds=new Set((a.data??[]).map((x:any)=>x.id));
-  const map:Record<string,string>={};
-  (d.data??[]).filter((x:any)=>customerAddressIds.has(x.address_id)).forEach((x:any)=>{map[`${x.address_id}:${x.branch_id}`]=String(x.distance_km)});
-  setDistances(map);
+  const customerAddressIds=new Set((a.data??[]).map((x:any)=>x.id));const map:Record<string,string>={};
+  (d.data??[]).filter((x:any)=>customerAddressIds.has(x.address_id)).forEach((x:any)=>{map[`${x.address_id}:${x.branch_id}`]=String(x.distance_km)});setDistances(map);
  }
  async function saveProfile(e:FormEvent){e.preventDefault();if(!editing)return;const {error}=await supabase.rpc("update_customer_profile",{p_customer_id:editing.id,p_full_name:profile.full_name,p_mobile:profile.mobile||null,p_email:profile.email||null,p_preferred_branch_id:profile.preferred_branch_id||null});if(error){setMessage(error.message);return}setMessage("Customer details updated.");await load();setEditing(x=>x?{...x,...profile,preferred_branch_id:profile.preferred_branch_id||null}:x)}
  function editAddress(a:Address){setAddressForm({id:a.id,label:a.label,address_line:a.address_line,barangay:a.barangay??"",city:a.city??"",province:a.province??"",postal_code:a.postal_code??"",landmark:a.landmark??"",is_default:a.is_default})}
@@ -55,10 +58,22 @@ export default function CustomersPage(){
   setMessage("Customer address updated.");await openEdit(editing);
  }
 
- return <main className="workspace"><header><div><p className="eyebrow">CUSTOMERS</p><h1>Customer Directory</h1><p className="muted">Maintain customer details, delivery addresses, branch distances, and loyalty status.</p></div></header>{message&&<p className="notice">{message}</p>}
-  <section className="panel"><div className="panelHead"><div><h2>Customers</h2><span>{customers.length} active customers</span></div><input style={{maxWidth:360}} placeholder="Search name, code, mobile or email" value={search} onChange={e=>setSearch(e.target.value)}/></div>
-   <div className="table"><div className="tableHeader" style={{gridTemplateColumns:"1.3fr .8fr .8fr .8fr .6fr"}}><span>Customer</span><span>Level</span><span>Available</span><span>Cumulative</span><span>Action</span></div>{filtered.map(c=><div className="tableRow" style={{gridTemplateColumns:"1.3fr .8fr .8fr .8fr .6fr"}} key={c.id}><div><strong>{c.full_name}</strong><small>{c.customer_code} · {c.mobile||c.email||"No contact"}</small></div><span className="status active">{levelFor(c.lifetime_points)}</span><strong>{c.loyalty_points.toLocaleString()} pts</strong><span>{c.lifetime_points.toLocaleString()} pts<br/><small>{c.lifetime_visits} visits · {peso.format(c.lifetime_spend)}</small></span><button className="miniBtn" onClick={()=>openEdit(c)}>Edit Customer</button></div>)}</div>
+ return <main className="workspace customerDirectoryPage">
+  <header className="customerDirectoryHeader"><div><p className="eyebrow">CUSTOMERS</p><h1>Customer Directory</h1><p className="muted">Maintain customer details, delivery addresses, branch distances, and loyalty status.</p></div></header>
+  {message&&<p className="notice">{message}</p>}
+
+  <section className="customerSummaryGrid">
+   <article className="customerSummaryCard"><span className="summaryIcon">◎</span><div><small>TOTAL CUSTOMERS</small><strong>{customers.length}</strong><span>Active customers</span></div></article>
+   {levelCounts.map(l=>{const next=nextLevel(l);return <article className="customerSummaryCard" key={l.id}><span className="summaryIcon">★</span><div><small>{l.name.toUpperCase()}</small><strong>{l.count}</strong><span>{l.minimum_points.toLocaleString()}{next?`–${(next.minimum_points-1).toLocaleString()}`:"+"} pts</span></div></article>})}
   </section>
+
+  <section className="panel customerDirectoryPanel">
+   <div className="customerToolbar"><div><h2>Customers ({filtered.length})</h2><span>{customers.length} active customer{customers.length===1?"":"s"}</span></div><div className="customerFilters"><select value={levelFilter} onChange={e=>setLevelFilter(e.target.value)}><option value="all">All Levels</option>{levels.filter(l=>l.active).map(l=><option value={l.name} key={l.id}>{l.name}</option>)}</select><input placeholder="Search name, code, mobile or email…" value={search} onChange={e=>setSearch(e.target.value)}/></div></div>
+   <div className="customerTableWrap"><table className="customerTable"><thead><tr><th>Customer</th><th>Loyalty Level</th><th>Available Points</th><th>Cumulative Points</th><th>Visits</th><th>Lifetime Spend</th><th>Actions</th></tr></thead><tbody>{filtered.map(c=><tr key={c.id}><td><div className="customerIdentity"><span className="customerAvatar">{c.full_name.split(/\s+/).filter(Boolean).slice(0,2).map(n=>n[0]?.toUpperCase()).join("")||"C"}</span><div><strong>{c.full_name}</strong><small>{c.customer_code}</small><small>{c.mobile||c.email||"No contact"}</small></div></div></td><td><span className="loyaltyLevelBadge">★ {levelFor(c.lifetime_points)}</span></td><td><strong>{c.loyalty_points.toLocaleString()} pts</strong><small>Available</small></td><td><strong>{c.lifetime_points.toLocaleString()} pts</strong><small>Total earned</small></td><td><strong>{c.lifetime_visits.toLocaleString()}</strong><small>Visits</small></td><td><strong>{peso.format(c.lifetime_spend)}</strong><small>Total spend</small></td><td><div className="customerActions"><button className="miniBtn" onClick={()=>showQr(c)}>▦ View QR</button><button className="miniBtn" onClick={()=>openEdit(c)}>✎ Edit Customer</button></div></td></tr>)}</tbody></table>{filtered.length===0&&<div className="customerEmpty">No customers match your search or level filter.</div>}</div>
+  </section>
+
+  {qr&&<div className="modalBackdrop"><section className="modal qrModal"><div className="panelHead"><div><p className="eyebrow">CUSTOMER QR</p><h2>{qr.customer.full_name}</h2><span>{qr.customer.customer_code} · {levelFor(qr.customer.lifetime_points)}</span></div><button className="iconBtn" onClick={()=>setQr(null)}>×</button></div><div className="customerCard"><img src={qr.image} alt={`${qr.customer.full_name} QR code`}/><strong>{qr.customer.customer_code}</strong><span>{qr.customer.loyalty_points.toLocaleString()} available points · {qr.customer.lifetime_points.toLocaleString()} cumulative</span></div><div className="qrActions"><button className="primary" onClick={()=>window.print()}>Print Customer Card</button></div></section></div>}
+
   {editing&&<div className="modalBackdrop"><section className="modal" style={{width:"min(980px,100%)"}}><div className="panelHead"><div><p className="eyebrow">EDIT CUSTOMER</p><h2>{editing.full_name}</h2><span>{editing.customer_code} · {levelFor(editing.lifetime_points)} · {editing.lifetime_points.toLocaleString()} cumulative points</span></div><button className="iconBtn" onClick={()=>setEditing(null)}>×</button></div>
    <form className="gridForm" onSubmit={saveProfile}><label>Full name<input value={profile.full_name} onChange={e=>setProfile({...profile,full_name:e.target.value})} required/></label><label>Mobile<input value={profile.mobile} onChange={e=>setProfile({...profile,mobile:e.target.value})}/></label><label>Email<input type="email" value={profile.email} onChange={e=>setProfile({...profile,email:e.target.value})}/></label><label>Preferred branch<select value={profile.preferred_branch_id} onChange={e=>setProfile({...profile,preferred_branch_id:e.target.value})}><option value="">None</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label><div className="wide"><button className="primary">Save Customer Details</button></div></form>
    <h3>Addresses & Delivery Distance</h3>{addresses.length===0&&<p className="muted">No saved addresses yet.</p>}{addresses.map(a=><div className="orderCard" key={a.id}><div className="orderTop"><div><strong>{a.label}{a.is_default?" · Default":""}</strong><small>{[a.address_line,a.barangay,a.city,a.province].filter(Boolean).join(", ")}</small>{a.landmark&&<small>Landmark: {a.landmark}</small>}</div><button className="miniBtn" onClick={()=>editAddress(a)}>Edit Address</button></div><div className="settingsGrid">{branches.map(b=><div key={b.id}><span>{b.name}</span><strong>{distances[`${a.id}:${b.id}`]?`${distances[`${a.id}:${b.id}`]} km`:"Not set"}</strong></div>)}</div></div>)}
