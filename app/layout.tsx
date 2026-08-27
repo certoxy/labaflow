@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./sidebar.css";
 import "./order-polish.css";
 import "./promo-order.css";
 import "./qr.css";
