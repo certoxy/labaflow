@@ -1,0 +1,14 @@
+"use client";
+import {FormEvent,useEffect,useState} from "react";
+import {supabase} from "../lib/supabase";
+
+type Branch={id:string;name:string};
+export default function NewCustomerEnhancer(){
+ const [open,setOpen]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState(""),[branches,setBranches]=useState<Branch[]>([]);
+ const [form,setForm]=useState({full_name:"",mobile:"",email:"",preferred_branch_id:""});
+ useEffect(()=>{const fn=()=>{setError("");setOpen(true);loadBranches()};window.addEventListener("labaflow:open-new-customer",fn);return()=>window.removeEventListener("labaflow:open-new-customer",fn)},[]);
+ async function loadBranches(){const {data}=await supabase.rpc("get_current_access_context");const rows=(data?.branches??[]) as Branch[];setBranches(rows);setForm(x=>({...x,preferred_branch_id:x.preferred_branch_id||rows[0]?.id||""}))}
+ async function save(e:FormEvent){e.preventDefault();if(!form.full_name.trim())return;setSaving(true);setError("");const {data,error}=await supabase.rpc("create_customer_with_qr",{p_full_name:form.full_name.trim(),p_mobile:form.mobile.trim()||null,p_email:form.email.trim()||null,p_preferred_branch_id:form.preferred_branch_id||null});setSaving(false);if(error){setError(error.message);return}setOpen(false);setForm({full_name:"",mobile:"",email:"",preferred_branch_id:""});window.dispatchEvent(new CustomEvent("labaflow:customer-created",{detail:{customer:data.customer}}))}
+ if(!open)return null;
+ return <div className="modalBackdrop" onMouseDown={()=>!saving&&setOpen(false)}><section className="modal" onMouseDown={e=>e.stopPropagation()}><div className="panelHead"><div><p className="eyebrow">NEW CUSTOMER</p><h2>Add Customer</h2><span>Create the customer profile, then continue with their order.</span></div><button type="button" className="iconBtn" onClick={()=>setOpen(false)}>×</button></div><form className="stack" onSubmit={save}><label>Full Name<input autoFocus value={form.full_name} onChange={e=>setForm({...form,full_name:e.target.value})} required placeholder="Customer name"/></label><div className="gridForm"><label>Mobile<input value={form.mobile} onChange={e=>setForm({...form,mobile:e.target.value})} placeholder="Mobile number"/></label><label>Email<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} placeholder="Email address"/></label></div><label>Preferred Branch<select value={form.preferred_branch_id} onChange={e=>setForm({...form,preferred_branch_id:e.target.value})}><option value="">No preferred branch</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label>{error&&<p className="notice">{error}</p>}<div className="modalActions"><button type="button" className="secondary" onClick={()=>setOpen(false)} disabled={saving}>Cancel</button><button className="primary" disabled={saving}>{saving?"Creating…":"Create Customer"}</button></div></form></section></div>
+}
