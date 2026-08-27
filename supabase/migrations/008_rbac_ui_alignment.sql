@@ -73,8 +73,11 @@ begin
 end;
 $$;
 
--- Managers can maintain the service catalog as defined by the permission matrix.
+-- Managers can maintain services according to the permission matrix.
 drop policy if exists "admins manage services" on public.services;
+drop policy if exists "service managers insert services" on public.services;
+drop policy if exists "service managers update services" on public.services;
+drop policy if exists "service managers delete services" on public.services;
 create policy "service managers insert services" on public.services for insert to authenticated
   with check(public.is_organization_member(organization_id) and public.has_role_permission('manage_services'));
 create policy "service managers update services" on public.services for update to authenticated
@@ -93,6 +96,56 @@ begin
   values(v_org,trim(p_name),nullif(trim(coalesce(p_description,'')),''),p_pricing_unit,p_default_price)
   returning * into v_service;
   return v_service;
+end $$;
+
+create or replace function public.create_customer_with_qr(
+  p_full_name text,
+  p_mobile text default null,
+  p_email text default null,
+  p_preferred_branch_id uuid default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=public
+as $$
+declare v_org uuid;v_customer public.customers;v_token public.customer_qr_tokens;
+begin
+  select organization_id into v_org from public.organization_memberships where user_id=auth.uid() and active limit 1;
+  if v_org is null then raise exception 'Active organization membership required'; end if;
+  if not public.has_role_permission('manage_customers',p_preferred_branch_id) then raise exception 'Customer management permission required'; end if;
+  if nullif(trim(p_full_name),'') is null then raise exception 'Customer name is required'; end if;
+  if p_preferred_branch_id is not null and not exists(select 1 from public.branches where id=p_preferred_branch_id and organization_id=v_org and active) then raise exception 'Invalid branch'; end if;
+  insert into public.customers(organization_id,full_name,mobile,email,preferred_branch_id)
+  values(v_org,trim(p_full_name),nullif(trim(p_mobile),''),nullif(lower(trim(p_email)),''),p_preferred_branch_id)
+  returning * into v_customer;
+  insert into public.customer_qr_tokens(organization_id,customer_id) values(v_org,v_customer.id) returning * into v_token;
+  return jsonb_build_object('customer',to_jsonb(v_customer),'qr_token',v_token.token);
+end $$;
+
+create or replace function public.create_laundry_order(p_branch_id uuid,p_customer_id uuid,p_items jsonb,p_discount numeric default 0,p_notes text default null,p_due_at timestamptz default null)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare v_org uuid;v_order public.laundry_orders%rowtype;v_item jsonb;v_service public.services%rowtype;v_qty numeric;v_price numeric;v_subtotal numeric:=0;
+begin
+  select organization_id into v_org from branches where id=p_branch_id and public.can_access_branch(id);
+  if v_org is null then raise exception 'Branch access denied'; end if;
+  if not public.has_role_permission('create_orders',p_branch_id) then raise exception 'Order creation permission required'; end if;
+  if p_customer_id is not null and not exists(select 1 from customers where id=p_customer_id and organization_id=v_org and active) then raise exception 'Customer is invalid'; end if;
+  if jsonb_array_length(coalesce(p_items,'[]'::jsonb))=0 then raise exception 'Add at least one service'; end if;
+  insert into laundry_orders(organization_id,branch_id,customer_id,discount,notes,due_at,created_by)
+  values(v_org,p_branch_id,p_customer_id,greatest(coalesce(p_discount,0),0),p_notes,p_due_at,auth.uid()) returning * into v_order;
+  for v_item in select * from jsonb_array_elements(p_items) loop
+    select * into v_service from services where id=(v_item->>'service_id')::uuid and organization_id=v_org and active;
+    if v_service.id is null then raise exception 'Service is invalid'; end if;
+    v_qty:=greatest((v_item->>'quantity')::numeric,0);
+    if v_qty<=0 then raise exception 'Quantity must be greater than zero'; end if;
+    select coalesce((select price from branch_service_prices where branch_id=p_branch_id and service_id=v_service.id and active),v_service.default_price) into v_price;
+    insert into laundry_order_items(order_id,service_id,quantity,unit_price,notes) values(v_order.id,v_service.id,v_qty,v_price,v_item->>'notes');
+    v_subtotal:=v_subtotal+(v_qty*v_price);
+  end loop;
+  update laundry_orders set subtotal=v_subtotal,total=greatest(v_subtotal-greatest(coalesce(p_discount,0),0),0),updated_at=now() where id=v_order.id returning * into v_order;
+  insert into order_status_history(order_id,status,changed_by,notes) values(v_order.id,'received',auth.uid(),'Order created');
+  return to_jsonb(v_order);
 end $$;
 
 create or replace function public.adjust_customer_loyalty(
@@ -114,8 +167,7 @@ begin
   if not exists(select 1 from customers where id=p_customer_id and organization_id=v_org) then raise exception 'Customer not found'; end if;
   if p_branch_id is not null and not exists(select 1 from branches where id=p_branch_id and organization_id=v_org) then raise exception 'Invalid branch'; end if;
   update customers set loyalty_points=loyalty_points+p_points,lifetime_points=lifetime_points+greatest(p_points,0),updated_at=now()
-  where id=p_customer_id and organization_id=v_org and loyalty_points+p_points>=0
-  returning loyalty_points into v_new_balance;
+  where id=p_customer_id and organization_id=v_org and loyalty_points+p_points>=0 returning loyalty_points into v_new_balance;
   if v_new_balance is null then raise exception 'Insufficient loyalty points'; end if;
   v_type:=case when p_points>=0 then 'adjustment'::public.loyalty_transaction_type else 'redeem'::public.loyalty_transaction_type end;
   insert into loyalty_transactions(organization_id,customer_id,branch_id,transaction_type,points,description,created_by)
@@ -126,6 +178,8 @@ end $$;
 grant execute on function public.get_current_access_context() to authenticated;
 grant execute on function public.has_role_permission(text,uuid) to authenticated;
 grant execute on function public.create_laundry_service(text,text,public.pricing_unit,numeric) to authenticated;
+grant execute on function public.create_customer_with_qr(text,text,text,uuid) to authenticated;
+grant execute on function public.create_laundry_order(uuid,uuid,jsonb,numeric,text,timestamptz) to authenticated;
 grant execute on function public.adjust_customer_loyalty(uuid,integer,text,uuid) to authenticated;
 
 commit;
