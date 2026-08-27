@@ -16,7 +16,6 @@ export default function SidebarEnhancer(){
    const nav=sidebar.querySelector("nav");
    if(!nav)return;
    const rawButtons=Array.from(nav.querySelectorAll<HTMLElement>(":scope > button"));
-   const customerBtn=rawButtons.find(x=>x.textContent?.trim()==="Customers");if(customerBtn)customerBtn.onclick=()=>{location.href="/customers"};
    const hasOrgAdmin=rawButtons.some(x=>x.textContent?.includes("Organization Admin"));
    if(hasOrgAdmin&&!nav.querySelector('[data-loyalty-levels-nav]')){const l=document.createElement("button");l.type="button";l.dataset.loyaltyLevelsNav="1";l.textContent="Loyalty Levels";l.title="Loyalty Levels";l.onclick=()=>{location.href="/organization/loyalty-levels"};const promo=Array.from(nav.querySelectorAll("button")).find(x=>x.textContent?.includes("Promo Codes"));promo?nav.insertBefore(l,promo):nav.appendChild(l)}
    if(!nav.querySelector('[data-promo-nav]')&&hasOrgAdmin){const p=document.createElement("button");p.type="button";p.dataset.promoNav="1";p.textContent="Promo Codes";p.title="Promo Codes";p.onclick=()=>{location.href="/organization/promos"};const platform=Array.from(nav.querySelectorAll("button")).find(x=>x.textContent?.includes("Platform Admin"));platform?nav.insertBefore(p,platform):nav.appendChild(p)}
@@ -24,6 +23,7 @@ export default function SidebarEnhancer(){
    if(nav.dataset.grouped==="1")return;
    const buttons=Array.from(nav.querySelectorAll<HTMLElement>(":scope > button"));
    const find=(name:string)=>buttons.find(b=>b.querySelector(".navText")?.textContent?.trim()===name);
+   const customerBtn=find("Customers");if(customerBtn)customerBtn.onclick=()=>{location.href="/customers"};
    const makeSection=(title:string,names:string[])=>{const found=names.map(find).filter(Boolean) as HTMLElement[];if(!found.length)return null;const wrap=document.createElement("div");wrap.className="navSection";const lab=document.createElement("div");lab.className="navSectionLabel navText";lab.textContent=title;wrap.appendChild(lab);found.forEach(b=>wrap.appendChild(b));return wrap};
    const operations=makeSection("Operations",["Dashboard","New Order","Orders"]);
    const customers=makeSection("Customers",["Customers","Loyalty"]);
