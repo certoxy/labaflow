@@ -4,6 +4,20 @@ import { useEffect } from "react";
 
 export default function SidebarEnhancer(){
  useEffect(()=>{
+  const captureCustomerNav=(e:MouseEvent)=>{
+   const target=e.target as HTMLElement|null;
+   const button=target?.closest(".sidebar button") as HTMLButtonElement|null;
+   if(!button)return;
+   const text=(button.querySelector(".navText")?.textContent||button.textContent||"").trim();
+   if(text==="Customers"&&!button.closest("[data-shared-sidebar]")){
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    location.href="/customers";
+   }
+  };
+  document.addEventListener("click",captureCustomerNav,true);
+
   const enhance=()=>{
    const sidebar=document.querySelector<HTMLElement>(".sidebar:not([data-shared-sidebar])");
    if(!sidebar)return;
@@ -23,7 +37,6 @@ export default function SidebarEnhancer(){
    if(nav.dataset.grouped==="1")return;
    const buttons=Array.from(nav.querySelectorAll<HTMLElement>(":scope > button"));
    const find=(name:string)=>buttons.find(b=>b.querySelector(".navText")?.textContent?.trim()===name);
-   const customerBtn=find("Customers");if(customerBtn)customerBtn.onclick=()=>{location.href="/customers"};
    const makeSection=(title:string,names:string[])=>{const found=names.map(find).filter(Boolean) as HTMLElement[];if(!found.length)return null;const wrap=document.createElement("div");wrap.className="navSection";const lab=document.createElement("div");lab.className="navSectionLabel navText";lab.textContent=title;wrap.appendChild(lab);found.forEach(b=>wrap.appendChild(b));return wrap};
    const operations=makeSection("Operations",["Dashboard","New Order","Orders"]);
    const customers=makeSection("Customers",["Customers","Loyalty"]);
@@ -35,6 +48,7 @@ export default function SidebarEnhancer(){
    if(adminButtons.length){const admin=document.createElement("div");admin.className="navSection adminGroup";let open=localStorage.getItem("labaflow.sidebar.adminOpen")!=="0";admin.classList.toggle("open",open);const toggle=document.createElement("button");toggle.type="button";toggle.className="navGroupToggle";toggle.innerHTML='<span class="navIcon">A</span><span class="navText">Administration</span><span class="navChevron navText"></span>';const items=document.createElement("div");items.className="navGroupItems";adminButtons.forEach(b=>items.appendChild(b));const sync=()=>{admin.classList.toggle("open",open);items.style.display=open?"grid":"none";(toggle.querySelector(".navChevron") as HTMLElement).textContent=open?"⌄":"›"};toggle.onclick=()=>{open=!open;localStorage.setItem("labaflow.sidebar.adminOpen",open?"1":"0");sync()};sync();admin.append(toggle,items);nav.appendChild(admin)}
    nav.dataset.grouped="1";
   };
-  enhance();const obs=new MutationObserver(enhance);obs.observe(document.body,{childList:true,subtree:true});return()=>obs.disconnect()
+  enhance();const obs=new MutationObserver(enhance);obs.observe(document.body,{childList:true,subtree:true});
+  return()=>{obs.disconnect();document.removeEventListener("click",captureCustomerNav,true)}
  },[]);return null
 }
