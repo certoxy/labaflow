@@ -1,0 +1,18 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
+
+type Branch={id:string;name:string};
+type Access={role?:string;branches?:Branch[];permissions?:Record<string,boolean>;features?:Record<string,boolean>;is_platform_admin?:boolean};
+type Context={profile?:{full_name:string|null;email:string};organization?:{name:string}|null};
+const label=(s:string)=>s.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
+
+export default function SharedSidebar({active}:{active?:string}){
+ const [access,setAccess]=useState<Access>({}),[context,setContext]=useState<Context>({}),[collapsed,setCollapsed]=useState(false);
+ useEffect(()=>{setCollapsed(localStorage.getItem("labaflow.sidebar.collapsed")==="1");Promise.all([supabase.rpc("get_current_access_context"),supabase.rpc("get_my_labaflow_context")]).then(([a,c])=>{if(!a.error)setAccess(a.data??{});if(!c.error)setContext(c.data??{})})},[]);
+ function toggle(){setCollapsed(v=>{const next=!v;localStorage.setItem("labaflow.sidebar.collapsed",next?"1":"0");return next})}
+ const p=access.permissions??{};const branch=access.branches?.[0];const pickup=access.features?.pickup_delivery!==false;
+ const item=(key:string,text:string,href:string,show=true)=>show?<button title={text} className={active===key?"active":""} onClick={()=>location.href=href}><span className="navIcon">{text.slice(0,1)}</span><span className="navText">{text}</span></button>:null;
+ return <aside data-shared-sidebar className={`sidebar sharedSidebar ${collapsed?"collapsed":""}`}><div className="brand"><div className="logoMark small">LF</div><div className="navText"><strong>LabaFlow</strong><small>{context.organization?.name??"Workspace"}</small></div><button type="button" className="sidebarToggle" onClick={toggle} title={collapsed?"Show navigation":"Hide navigation"}>{collapsed?"›":"‹"}</button></div><div className="roleBadge navText"><strong>{context.profile?.full_name||context.profile?.email||"LabaFlow User"}</strong><span>{label(access.role??"member")}{branch?` · ${branch.name}`:""}</span></div><nav>{item("dashboard","Dashboard","/")}{item("new-order","New Order","/new-order",Boolean(p.create_orders))}{item("orders","Orders","/?view=orders",Boolean(p.create_orders||p.process_orders||p.record_payments||p.view_reports||p.delivery_access))}{item("customers","Customers","/?view=customers",Boolean(p.manage_customers||p.create_orders||p.adjust_loyalty))}{item("loyalty","Loyalty","/?view=loyalty",Boolean(p.adjust_loyalty||p.view_reports))}{item("services","Services & Pricing","/?view=services",Boolean(p.manage_services))}{item("dispatch","Pickup & Delivery","/pickup-delivery",pickup&&Boolean(p.delivery_access||p.create_orders||p.view_reports))}{p.manage_organization&&<hr/>}{item("organization","Organization Admin","/organization",Boolean(p.manage_organization))}{item("promos","Promo Codes","/organization/promos",Boolean(p.manage_organization))}{item("delivery-pricing","Delivery Pricing","/organization/delivery-pricing",Boolean(p.manage_organization))}{item("platform","Platform Admin","/admin",Boolean(access.is_platform_admin))}</nav><div className="sidebarFooter"><button title="Sign out" onClick={()=>supabase.auth.signOut().then(()=>location.href="/")}><span className="navText">Sign out</span><span className="navIcon">↪</span></button></div></aside>
+}
