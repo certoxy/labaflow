@@ -15,10 +15,11 @@ export default function SidebarEnhancer(){
    }
    const nav=sidebar.querySelector("nav");
    if(!nav)return;
-   if(!nav.querySelector('[data-promo-nav]')&&Array.from(nav.querySelectorAll("button")).some(x=>x.textContent?.includes("Organization Admin"))){
-    const p=document.createElement("button");p.type="button";p.dataset.promoNav="1";p.textContent="Promo Codes";p.title="Promo Codes";p.onclick=()=>{location.href="/organization/promos"};
-    const platform=Array.from(nav.querySelectorAll("button")).find(x=>x.textContent?.includes("Platform Admin"));platform?nav.insertBefore(p,platform):nav.appendChild(p)
-   }
+   const rawButtons=Array.from(nav.querySelectorAll<HTMLElement>(":scope > button"));
+   const customerBtn=rawButtons.find(x=>x.textContent?.trim()==="Customers");if(customerBtn)customerBtn.onclick=()=>{location.href="/customers"};
+   const hasOrgAdmin=rawButtons.some(x=>x.textContent?.includes("Organization Admin"));
+   if(hasOrgAdmin&&!nav.querySelector('[data-loyalty-levels-nav]')){const l=document.createElement("button");l.type="button";l.dataset.loyaltyLevelsNav="1";l.textContent="Loyalty Levels";l.title="Loyalty Levels";l.onclick=()=>{location.href="/organization/loyalty-levels"};const promo=Array.from(nav.querySelectorAll("button")).find(x=>x.textContent?.includes("Promo Codes"));promo?nav.insertBefore(l,promo):nav.appendChild(l)}
+   if(!nav.querySelector('[data-promo-nav]')&&hasOrgAdmin){const p=document.createElement("button");p.type="button";p.dataset.promoNav="1";p.textContent="Promo Codes";p.title="Promo Codes";p.onclick=()=>{location.href="/organization/promos"};const platform=Array.from(nav.querySelectorAll("button")).find(x=>x.textContent?.includes("Platform Admin"));platform?nav.insertBefore(p,platform):nav.appendChild(p)}
    nav.querySelectorAll(":scope > button").forEach(btn=>{if(!btn.querySelector(".navText")){const txt=(btn.textContent||"").trim();btn.textContent="";const i=document.createElement("span");i.className="navIcon";i.textContent=txt.slice(0,1);const t=document.createElement("span");t.className="navText";t.textContent=txt;btn.append(i,t);btn.setAttribute("title",txt)}})
    if(nav.dataset.grouped==="1")return;
    const buttons=Array.from(nav.querySelectorAll<HTMLElement>(":scope > button"));
@@ -27,7 +28,7 @@ export default function SidebarEnhancer(){
    const operations=makeSection("Operations",["Dashboard","New Order","Orders"]);
    const customers=makeSection("Customers",["Customers","Loyalty"]);
    const management=makeSection("Management",["Services & Pricing","Pickup & Delivery"]);
-   const adminNames=["Organization Admin","Organization Settings","Promo Codes","Delivery Pricing","Platform Admin"];
+   const adminNames=["Organization Admin","Organization Settings","Loyalty Levels","Promo Codes","Delivery Pricing","Platform Admin"];
    const adminButtons=adminNames.map(find).filter(Boolean) as HTMLElement[];
    Array.from(nav.children).forEach(el=>el.remove());
    if(operations)nav.appendChild(operations);if(customers)nav.appendChild(customers);if(management)nav.appendChild(management);
