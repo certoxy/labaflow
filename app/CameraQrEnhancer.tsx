@@ -7,6 +7,8 @@ export default function CameraQrEnhancer(){
  const videoRef=useRef<HTMLVideoElement|null>(null),streamRef=useRef<MediaStream|null>(null),rafRef=useRef<number|null>(null),scanningRef=useRef(false);
 
  useEffect(()=>{
+  const openScanner=()=>{setError("");setStatus("Point the camera at the customer's LabaFlow QR code.");setOpen(true)};
+  window.addEventListener("labaflow:open-camera-qr",openScanner as EventListener);
   const enhance=()=>{
    const bars=Array.from(document.querySelectorAll<HTMLElement>(".scanBar"));
    for(const bar of bars){
@@ -14,11 +16,12 @@ export default function CameraQrEnhancer(){
     if(!input||bar.querySelector('[data-camera-qr-button]'))continue;
     const button=document.createElement("button");
     button.type="button";button.className="secondary cameraQrButton";button.dataset.cameraQrButton="1";button.textContent="Scan with Camera";
-    button.onclick=()=>{setError("");setStatus("Point the camera at the customer's LabaFlow QR code.");setOpen(true)};
+    button.onclick=openScanner;
     bar.appendChild(button);
    }
   };
-  enhance();const observer=new MutationObserver(enhance);observer.observe(document.body,{childList:true,subtree:true});return()=>observer.disconnect();
+  enhance();const observer=new MutationObserver(enhance);observer.observe(document.body,{childList:true,subtree:true});
+  return()=>{observer.disconnect();window.removeEventListener("labaflow:open-camera-qr",openScanner as EventListener)};
  },[]);
 
  useEffect(()=>{if(open)startCamera();else stopCamera();return()=>stopCamera()},[open]);
@@ -48,15 +51,18 @@ export default function CameraQrEnhancer(){
  }
 
  async function handleResult(raw:string){
-  scanningRef.current=false;setStatus("QR found. Opening customer order…");
+  scanningRef.current=false;setStatus("QR found. Selecting customer…");
   const token=raw.replace(/^labaflow:/i,"").trim();
   const bars=Array.from(document.querySelectorAll<HTMLElement>(".scanBar"));
   const bar=bars.find(x=>x.querySelector<HTMLInputElement>('input[placeholder*="QR" i]'));
   const input=bar?.querySelector<HTMLInputElement>('input[placeholder*="QR" i]');
   const start=bar?.querySelector<HTMLButtonElement>("button.primary");
-  if(!input||!start){setError("The Dashboard QR order field is not available. Return to Dashboard and try again.");return}
-  const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;setter?.call(input,token);input.dispatchEvent(new Event("input",{bubbles:true}));input.dispatchEvent(new Event("change",{bubbles:true}));
-  stopCamera();setOpen(false);setTimeout(()=>start.click(),80);
+  if(input&&start){
+   const setter=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value")?.set;setter?.call(input,token);input.dispatchEvent(new Event("input",{bubbles:true}));input.dispatchEvent(new Event("change",{bubbles:true}));
+   stopCamera();setOpen(false);setTimeout(()=>start.click(),80);return;
+  }
+  window.dispatchEvent(new CustomEvent("labaflow:qr-scanned",{detail:{token,raw}}));
+  stopCamera();setOpen(false);
  }
 
  return open?<div className="modalBackdrop cameraQrBackdrop" onMouseDown={()=>setOpen(false)}><section className="modal cameraQrModal" onMouseDown={e=>e.stopPropagation()}><div className="panelHead"><div><p className="eyebrow">CUSTOMER QR</p><h2>Scan with Camera</h2><span>Use the customer card or QR displayed on their phone.</span></div><button className="iconBtn" type="button" onClick={()=>setOpen(false)}>×</button></div><div className="cameraViewport"><video ref={videoRef} muted playsInline/><div className="cameraFrame"><span/><span/><span/><span/></div></div>{status&&<p className="cameraStatus">{status}</p>}{error&&<div className="notice cameraError">{error}<br/><small>Make sure camera permission is allowed for localhost in your browser settings.</small></div>}<div className="cameraQrActions"><button type="button" className="secondary" onClick={()=>setOpen(false)}>Cancel</button>{error&&<button type="button" className="primary" onClick={()=>{setError("");setStatus("Point the camera at the customer's LabaFlow QR code.");startCamera()}}>Try Again</button>}</div></section></div>:null;
