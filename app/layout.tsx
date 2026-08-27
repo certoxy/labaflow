@@ -9,6 +9,7 @@ import ServiceEditEnhancer from "./ServiceEditEnhancer";
 import NewOrderRouteEnhancer from "./NewOrderRouteEnhancer";
 import SidebarEnhancer from "./SidebarEnhancer";
 import CameraQrEnhancer from "./CameraQrEnhancer";
+import NewCustomerEnhancer from "./NewCustomerEnhancer";
 
 export const metadata: Metadata = {
   title: "LabaFlow",
@@ -16,5 +17,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body><ServiceEditEnhancer/><NewOrderRouteEnhancer/><SidebarEnhancer/><CameraQrEnhancer/>{children}</body></html>;
+  return <html lang="en"><body><ServiceEditEnhancer/><NewOrderRouteEnhancer/><SidebarEnhancer/><CameraQrEnhancer/><NewCustomerEnhancer/>{children}</body></html>;
 }
