@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./qr.css";
+import ServiceEditEnhancer from "./ServiceEditEnhancer";
 
 export const metadata: Metadata = {
   title: "LabaFlow",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body><ServiceEditEnhancer/>{children}</body></html>;
 }
