@@ -9,7 +9,7 @@ export default function SidebarEnhancer(){
    const button=target?.closest(".sidebar button") as HTMLButtonElement|null;
    if(!button||button.closest("[data-shared-sidebar]"))return;
    const text=(button.querySelector(".navText")?.textContent||button.textContent||"").trim();
-   const href=text==="Customers"?"/customers":text==="Orders"?"/orders":null;
+   const href=text==="New Order"?"/new-order":text==="Customers"?"/customers":text==="Orders"?"/orders":null;
    if(href){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();location.href=href}
   };
   document.addEventListener("click",captureDedicatedNav,true);
