@@ -6,7 +6,14 @@ type Branch={id:string;name:string};
 export default function NewCustomerEnhancer(){
  const [open,setOpen]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState(""),[branches,setBranches]=useState<Branch[]>([]);
  const [form,setForm]=useState({full_name:"",mobile:"",email:"",preferred_branch_id:""});
- useEffect(()=>{const fn=()=>{setError("");setOpen(true);loadBranches()};window.addEventListener("labaflow:open-new-customer",fn);return()=>window.removeEventListener("labaflow:open-new-customer",fn)},[]);
+ function show(){setError("");setOpen(true);loadBranches()}
+ useEffect(()=>{
+  const fn=()=>show();
+  const capture=(e:MouseEvent)=>{const button=(e.target as HTMLElement)?.closest("button");if(!button)return;const text=(button.textContent||"").trim();if(location.pathname==="/new-order"&&/walk-in customer/i.test(text)){e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();show()}};
+  const created=(e:Event)=>{const c=(e as CustomEvent<any>).detail?.customer;if(c&&location.pathname==="/new-order"){sessionStorage.setItem("labaflow.newCustomerId",c.id||"");location.reload()}};
+  window.addEventListener("labaflow:open-new-customer",fn);window.addEventListener("labaflow:customer-created",created);document.addEventListener("click",capture,true);
+  return()=>{window.removeEventListener("labaflow:open-new-customer",fn);window.removeEventListener("labaflow:customer-created",created);document.removeEventListener("click",capture,true)}
+ },[]);
  async function loadBranches(){const {data}=await supabase.rpc("get_current_access_context");const rows=(data?.branches??[]) as Branch[];setBranches(rows);setForm(x=>({...x,preferred_branch_id:x.preferred_branch_id||rows[0]?.id||""}))}
  async function save(e:FormEvent){e.preventDefault();if(!form.full_name.trim())return;setSaving(true);setError("");const {data,error}=await supabase.rpc("create_customer_with_qr",{p_full_name:form.full_name.trim(),p_mobile:form.mobile.trim()||null,p_email:form.email.trim()||null,p_preferred_branch_id:form.preferred_branch_id||null});setSaving(false);if(error){setError(error.message);return}setOpen(false);setForm({full_name:"",mobile:"",email:"",preferred_branch_id:""});window.dispatchEvent(new CustomEvent("labaflow:customer-created",{detail:{customer:data.customer}}))}
  if(!open)return null;
