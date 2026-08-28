@@ -11,9 +11,9 @@ type Org={id:string;name:string;slug:string;active:boolean};
 type BusinessSettings={loyalty:any;payments:{methods:string[]};workflow:{stages:string[]};completion:{require_full_payment_before_completion:boolean}};
 
 const featureKeys=["customer_loyalty","pickup_delivery","inventory","expenses","order_workflow","qr_customer_id"];
-const paymentOptions=["cash","gcash","maya","card","bank_transfer"];
+const paymentOptions=["cash","gcash","maya","card","bank_transfer","qrph"];
 const workflowOptions=["received","sorting","washing","drying","folding","ready","out_for_delivery","completed"];
-const label=(v:string)=>v.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
+const label=(v:string)=>v==="qrph"?"QR Ph":v.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
 
 export default function OrganizationAdminPage(){
  const [session,setSession]=useState<Session|null>(null),[checking,setChecking]=useState(true);
