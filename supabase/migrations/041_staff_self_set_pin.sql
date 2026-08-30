@@ -180,7 +180,11 @@ begin
 end;
 $$;
 
-create or replace function public.get_local_staff_accounts()
+-- PostgreSQL cannot change the OUT/row return type of an existing function
+-- with CREATE OR REPLACE, so recreate this function before adding pin_configured.
+drop function if exists public.get_local_staff_accounts();
+
+create function public.get_local_staff_accounts()
 returns table(
   id uuid,
   full_name text,
@@ -214,6 +218,7 @@ begin
 end;
 $$;
 
+grant execute on function public.get_local_staff_accounts() to authenticated;
 grant execute on function public.create_local_staff_account_v2(text,text,public.staff_role,uuid) to authenticated;
 grant execute on function public.issue_local_staff_pin_setup_code(uuid) to authenticated;
 grant execute on function public.set_local_staff_pin(text,text,text,text) to anon,authenticated;
