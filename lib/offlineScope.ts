@@ -1,7 +1,10 @@
 import {supabase} from "./supabase";
 import {offlineScope} from "./offlineQueue";
+import {getStoredLocalStaffSession} from "./localStaff";
 
 export async function currentOfflineScope(){
+ const local=getStoredLocalStaffSession();
+ if(local)return offlineScope(`local:${local.staff.id}`,local.organization.id);
  const {data:{session}}=await supabase.auth.getSession();
  const userId=session?.user?.id;
  if(!userId)return null;
