@@ -1,0 +1,20 @@
+{
+  "id": "/customer",
+  "name": "My LabaFlow",
+  "short_name": "My LabaFlow",
+  "description": "Track your laundry orders, payments, and loyalty rewards.",
+  "start_url": "/customer",
+  "scope": "/customer",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f2f8fb",
+  "theme_color": "#0d405e",
+  "icons": [
+    {
+      "src": "/labaflow-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
