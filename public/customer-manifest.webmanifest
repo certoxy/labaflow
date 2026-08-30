@@ -8,10 +8,11 @@
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#f2f8fb",
-  "theme_color": "#0d405e",
+  "theme_color": "#0ea5c6",
+  "categories": ["lifestyle", "utilities"],
   "icons": [
     {
-      "src": "/labaflow-icon.svg",
+      "src": "/my-labaflow-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
