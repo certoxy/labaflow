@@ -14,9 +14,10 @@ export default function OfflineEnhancer(){
    for(const job of await jobs()){
     if(job.kind!=="create_order")continue;
     await updateJob({...job,status:"syncing",error:undefined});
-    const {error}=await supabase.rpc("create_laundry_order",job.payload);
+    const {error}=await supabase.rpc("sync_offline_order",{p_operation_id:job.id,...job.payload});
     if(error){await updateJob({...job,status:"failed",error:error.message});continue}
     await removeJob(job.id);
+    window.dispatchEvent(new CustomEvent("labaflow:offline-order-synced",{detail:{operationId:job.id}}));
    }
   }finally{setSyncing(false);await refresh()}
  },[refresh,syncing]);
