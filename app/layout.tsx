@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./brand.css";
 import "./sidebar.css";
 import "./order-polish.css";
 import "./promo-order.css";
@@ -16,10 +17,10 @@ import OfflineEnhancer from "./OfflineEnhancer";
 
 export const metadata: Metadata = {
   title: "LabaFlow",
-  description: "Laundry management, simplified.",
+  description: "Flowing clean. Simplified business.",
   manifest: "/manifest.webmanifest",
   icons: {icon:"/labaflow-icon.svg",apple:"/labaflow-icon.svg"},
   appleWebApp: {capable:true,title:"LabaFlow",statusBarStyle:"default"},
 };
-export const viewport: Viewport = {themeColor:"#0f766e"};
+export const viewport: Viewport = {themeColor:"#0c3554"};
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {return <html lang="en"><body><ServiceEditEnhancer/><NewOrderRouteEnhancer/><SidebarEnhancer/><CameraQrEnhancer/><NewCustomerEnhancer/><NewOrderCustomerEnhancer/><OfflineEnhancer/>{children}</body></html>}
