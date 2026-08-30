@@ -7,6 +7,7 @@ import "./promo-order.css";
 import "./qr.css";
 import "./camera-qr.css";
 import "./receipt-print.css";
+import "./mobile.css";
 import ServiceEditEnhancer from "./ServiceEditEnhancer";
 import NewOrderRouteEnhancer from "./NewOrderRouteEnhancer";
 import SidebarEnhancer from "./SidebarEnhancer";
@@ -22,5 +23,5 @@ export const metadata: Metadata = {
   icons: {icon:"/labaflow-icon.svg",apple:"/labaflow-icon.svg"},
   appleWebApp: {capable:true,title:"LabaFlow",statusBarStyle:"default"},
 };
-export const viewport: Viewport = {themeColor:"#0c3554"};
+export const viewport: Viewport = {width:"device-width",initialScale:1,viewportFit:"cover",themeColor:"#0c3554"};
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {return <html lang="en"><body><ServiceEditEnhancer/><NewOrderRouteEnhancer/><SidebarEnhancer/><CameraQrEnhancer/><NewCustomerEnhancer/><NewOrderCustomerEnhancer/><OfflineEnhancer/>{children}</body></html>}
