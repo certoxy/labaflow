@@ -9,6 +9,7 @@ import "./camera-qr.css";
 import "./receipt-print.css";
 import "./mobile.css";
 import "./order-mobile-v3.css";
+import "./new-order-desktop.css";
 import "./orders-mobile.css";
 import "./checkout-mobile.css";
 import "./receipt-page.css";
