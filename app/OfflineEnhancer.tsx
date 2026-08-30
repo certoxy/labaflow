@@ -12,12 +12,14 @@ export default function OfflineEnhancer(){
   setSyncing(true);
   try{
    for(const job of await jobs()){
-    if(job.kind!=="create_order")continue;
     await updateJob({...job,status:"syncing",error:undefined});
-    const {error}=await supabase.rpc("sync_offline_order",{p_operation_id:job.id,...job.payload});
+    let error:any=null;
+    if(job.kind==="create_order")({error}=await supabase.rpc("sync_offline_order",{p_operation_id:job.id,...job.payload}));
+    else if(job.kind==="update_order_status")({error}=await supabase.rpc("sync_offline_order_status",{p_operation_id:job.id,...job.payload}));
+    else if(job.kind==="record_cash_payment")({error}=await supabase.rpc("sync_offline_cash_payment",{p_operation_id:job.id,...job.payload}));
     if(error){await updateJob({...job,status:"failed",error:error.message});continue}
     await removeJob(job.id);
-    window.dispatchEvent(new CustomEvent("labaflow:offline-order-synced",{detail:{operationId:job.id}}));
+    window.dispatchEvent(new CustomEvent("labaflow:offline-synced",{detail:{operationId:job.id,kind:job.kind}}));
    }
   }finally{setSyncing(false);await refresh()}
  },[refresh,syncing]);
