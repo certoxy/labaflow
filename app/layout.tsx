@@ -13,6 +13,7 @@ import "./orders-mobile.css";
 import "./checkout-mobile.css";
 import "./receipt-page.css";
 import "./customers-mobile.css";
+import "./loyalty-mobile.css";
 import ServiceEditEnhancer from "./ServiceEditEnhancer";
 import NewOrderRouteEnhancer from "./NewOrderRouteEnhancer";
 import SidebarEnhancer from "./SidebarEnhancer";
