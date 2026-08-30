@@ -20,6 +20,7 @@ import "./services-mobile.css";
 import "./sync-mobile.css";
 import "./organization-admin.css";
 import "./admin-subpages-mobile.css";
+import "./pwa-install.css";
 import "./customer/customer.css";
 import ServiceEditEnhancer from "./ServiceEditEnhancer";
 import NewOrderRouteEnhancer from "./NewOrderRouteEnhancer";
@@ -34,6 +35,7 @@ import AutoPrintReceiptEnhancer from "./AutoPrintReceiptEnhancer";
 import CheckoutEnhancer from "./CheckoutEnhancer";
 import AdminSubpagesEnhancer from "./AdminSubpagesEnhancer";
 import CustomerPwaEnhancer from "./CustomerPwaEnhancer";
+import OrgPwaEnhancer from "./OrgPwaEnhancer";
 
 export const metadata: Metadata = {
   title: "LabaFlow",
@@ -43,4 +45,4 @@ export const metadata: Metadata = {
   appleWebApp: {capable:true,title:"LabaFlow",statusBarStyle:"default"},
 };
 export const viewport: Viewport = {width:"device-width",initialScale:1,viewportFit:"cover",themeColor:"#0c3554"};
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {return <html lang="en"><body><ServiceEditEnhancer/><NewOrderRouteEnhancer/><SidebarEnhancer/><CameraQrEnhancer/><NewCustomerEnhancer/><NewOrderCustomerEnhancer/><OfflineEnhancer/><ReceiptEnhancer/><OrdersReceiptEnhancer/><AutoPrintReceiptEnhancer/><CheckoutEnhancer/><AdminSubpagesEnhancer/><CustomerPwaEnhancer/>{children}</body></html>}
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {return <html lang="en"><body><ServiceEditEnhancer/><NewOrderRouteEnhancer/><SidebarEnhancer/><CameraQrEnhancer/><NewCustomerEnhancer/><NewOrderCustomerEnhancer/><OfflineEnhancer/><ReceiptEnhancer/><OrdersReceiptEnhancer/><AutoPrintReceiptEnhancer/><CheckoutEnhancer/><AdminSubpagesEnhancer/><CustomerPwaEnhancer/><OrgPwaEnhancer/>{children}</body></html>}
