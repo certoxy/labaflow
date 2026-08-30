@@ -8,6 +8,7 @@ import "./qr.css";
 import "./camera-qr.css";
 import "./receipt-print.css";
 import "./mobile.css";
+import "./order-mobile-v3.css";
 import ServiceEditEnhancer from "./ServiceEditEnhancer";
 import NewOrderRouteEnhancer from "./NewOrderRouteEnhancer";
 import SidebarEnhancer from "./SidebarEnhancer";
