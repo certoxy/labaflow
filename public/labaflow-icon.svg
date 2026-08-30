@@ -1,5 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#0f766e"/>
-  <path d="M142 112h72v216h156v72H142z" fill="white"/>
-  <circle cx="326" cy="190" r="54" fill="#99f6e4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="LabaFlow">
+  <defs>
+    <linearGradient id="g" x1="96" y1="420" x2="414" y2="104" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1687c8"/>
+      <stop offset="1" stop-color="#27c2c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#ffffff"/>
+  <path d="M111 350c59-4 86-43 130-53 48-11 78 3 119 5-36 13-61 46-102 57-47 13-91 2-147-9Z" fill="url(#g)"/>
+  <path d="M95 319c49-4 80-42 123-53 42-11 73-1 111 3-34 11-59 39-95 50-45 14-89 11-139 0Z" fill="#0f5d86" opacity=".95"/>
+  <path d="M153 125c58-55 169-72 244-2 43 40 59 102 43 159-9-16-20-30-34-41 4-35-8-73-35-98-48-45-123-42-169 7-12 12-21 26-27 42-13-8-28-13-45-14 5-20 12-38 23-53Z" fill="url(#g)"/>
+  <rect x="190" y="143" width="158" height="185" rx="22" fill="#0c3554"/>
+  <rect x="210" y="164" width="118" height="28" rx="8" fill="#133f60"/>
+  <circle cx="304" cy="178" r="5" fill="#fff"/>
+  <circle cx="321" cy="178" r="5" fill="#fff"/>
+  <circle cx="268" cy="252" r="59" fill="#fff"/>
+  <circle cx="268" cy="252" r="45" fill="#dff8fb"/>
+  <path d="M226 261c24 10 42 12 62 3 12-5 20-12 25-19-3 28-21 50-45 50-22 0-39-15-42-34Z" fill="url(#g)"/>
+  <circle cx="129" cy="217" r="16" fill="#32c7c8"/>
+  <circle cx="112" cy="181" r="11" fill="#4bd5d0"/>
+  <circle cx="149" cy="165" r="8" fill="#27b8c3"/>
 </svg>
