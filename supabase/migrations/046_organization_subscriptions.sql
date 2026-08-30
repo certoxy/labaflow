@@ -86,9 +86,11 @@ begin
   with org_data as (
     select
       o.id,o.name,o.slug,o.active,o.created_at,
-      s.trial_started_at,s.trial_ends_at,s.status,s.billing_started_at,s.next_billing_at,s.notes,
+      s.trial_started_at,s.trial_ends_at,
+      case when s.status='trialing' and now()>=s.trial_ends_at then 'active' else s.status end as status,
+      s.billing_started_at,s.next_billing_at,s.notes,
       greatest(0,ceil(extract(epoch from (s.trial_ends_at-now()))/86400.0))::int as trial_days_remaining,
-      now() < s.trial_ends_at as in_trial,
+      now() < s.trial_ends_at and s.status='trialing' as in_trial,
       coalesce((
         select sum(p.monthly_price)
         from public.subscription_feature_prices p
@@ -123,9 +125,9 @@ begin
   select jsonb_build_object(
     'organizations',count(*),
     'trialing',count(*) filter(where now()<s.trial_ends_at and s.status='trialing'),
-    'billable',count(*) filter(where now()>=s.trial_ends_at and s.status in ('active','past_due')),
+    'billable',count(*) filter(where now()>=s.trial_ends_at and s.status in ('trialing','active','past_due')),
     'past_due',count(*) filter(where s.status='past_due'),
-    'estimated_mrr',coalesce(sum(case when now()>=s.trial_ends_at and s.status='active' then (
+    'estimated_mrr',coalesce(sum(case when now()>=s.trial_ends_at and s.status in ('trialing','active') then (
       select coalesce(sum(p.monthly_price),0)
       from public.subscription_feature_prices p
       left join public.organization_features f on f.organization_id=o.id and f.feature_key=p.feature_key
