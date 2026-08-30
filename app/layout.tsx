@@ -17,6 +17,7 @@ import "./loyalty-mobile.css";
 import "./reports-mobile.css";
 import "./services-mobile.css";
 import "./sync-mobile.css";
+import "./organization-admin.css";
 import ServiceEditEnhancer from "./ServiceEditEnhancer";
 import NewOrderRouteEnhancer from "./NewOrderRouteEnhancer";
 import SidebarEnhancer from "./SidebarEnhancer";
