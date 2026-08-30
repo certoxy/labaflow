@@ -1,4 +1,4 @@
-const CACHE="labaflow-shell-v3";
+const CACHE="labaflow-shell-v4";
 const PREFIX="labaflow-shell-";
 const SHELL=["/dashboard","/new-order","/orders","/customers","/pickup-delivery","/sync","/manifest.webmanifest","/labaflow-icon.svg"];
 
