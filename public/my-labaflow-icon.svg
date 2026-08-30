@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="My LabaFlow">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2dd4bf"/>
+      <stop offset="1" stop-color="#0ea5c6"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg)"/>
+  <circle cx="256" cy="196" r="72" fill="#fff" opacity=".98"/>
+  <path d="M126 402c16-78 64-118 130-118s114 40 130 118" fill="#fff" opacity=".98"/>
+  <path d="M112 126c48 28 87 24 118-12 31 36 70 40 118 12 18 33 43 53 76 60" fill="none" stroke="#dffcff" stroke-width="24" stroke-linecap="round" opacity=".9"/>
+  <circle cx="394" cy="118" r="38" fill="#0d405e"/>
+  <path d="M376 119l13 13 24-28" fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
