@@ -26,6 +26,7 @@ export default function OfflineEnhancer(){
     if(navigator.onLine)setTimeout(()=>sync(),800);
     return()=>{window.removeEventListener("online",on);window.removeEventListener("offline",off);window.removeEventListener("labaflow:queue-changed",changed)}
   },[refresh,sync]);
+  if(typeof window!=="undefined"&&location.pathname.startsWith("/customer"))return null;
   const text=!online?`● Offline${pending?` · ${pending} pending sync`:""}`:syncing?`↻ Syncing ${pending} change${pending===1?"":"s"}…`:pending?`● Online · ${pending} pending sync`:"● Online";
   return <div className="connectionBadge" data-online={online?"true":"false"} data-pending={pending>0?"true":"false"} aria-live="polite" onClick={()=>location.href="/sync"} title={text} style={{cursor:"pointer",position:"fixed",right:16,bottom:16,zIndex:9999,padding:"8px 12px",borderRadius:999,fontSize:13,fontWeight:700,boxShadow:"0 4px 18px rgba(0,0,0,.15)",background:online&&!pending?"#ecfdf5":"#fff7ed",color:online&&!pending?"#065f46":"#9a3412",border:`1px solid ${online&&!pending?"#a7f3d0":"#fed7aa"}`}}><span className="connectionText">{text}</span></div>
 }
