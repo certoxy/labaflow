@@ -69,7 +69,7 @@ export default function ReceiptEnhancer(){
        function line(ctx,x1,y1,x2,y2,color,width,dash){ctx.save();ctx.strokeStyle=color||'#d9e4e9';ctx.lineWidth=width||1;if(dash)ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.restore()}
        function roundRect(ctx,x,y,w,h,r,fill,stroke){ctx.save();ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke()}ctx.restore()}
        async function makeReceiptImage(){
-         var canvas=document.createElement('canvas'),w=1240,pad=30,cardX=34,cardW=w-68;
+         var canvas=document.createElement('canvas'),w=1240,cardX=34,cardW=w-68;
          var meta=Array.from(document.querySelectorAll('.meta>div')).map(function(d){return {k:text(d,'span'),v:text(d,'strong')}});
          var metaMap={};meta.forEach(function(m){metaMap[m.k]=m.v});
          var tables=document.querySelectorAll('table');
@@ -88,7 +88,7 @@ export default function ReceiptEnhancer(){
          line(ctx,cardX,205,cardX+cardW,205,'#91aab5',1,[6,5]);
 
          var leftLabel=64,leftValue=235,rightLabel=650,rightValue=842,y=232,row=50;
-         function metaCell(label,value,xLabel,xValue,yy){ctx.textAlign='left';ctx.font='400 24px Arial';ctx.fillStyle='#607985';ctx.fillText(label,xLabel,yy);ctx.font='700 25px Arial';ctx.fillStyle='#0b3048';var max=xLabel<400?330:330;fitText(ctx,value,max,25,'700');ctx.fillText(value||'—',xValue,yy)}
+         function metaCell(label,value,xLabel,xValue,yy){ctx.textAlign='left';ctx.font='400 24px Arial';ctx.fillStyle='#607985';ctx.fillText(label,xLabel,yy);ctx.font='700 25px Arial';ctx.fillStyle='#0b3048';fitText(ctx,value,330,25,'700');ctx.fillText(value||'—',xValue,yy)}
          metaCell('Order',metaMap.Order||'',leftLabel,leftValue,y);metaCell('Date',metaMap.Date||'',rightLabel,rightValue,y);y+=row;
          metaCell('Customer',metaMap.Customer||'',leftLabel,leftValue,y);metaCell('Status',metaMap.Status||'',rightLabel,rightValue,y);y+=row;
          metaCell('Customer Code',metaMap['Customer Code']||'',leftLabel,leftValue,y);metaCell('Payment',metaMap.Payment||'',rightLabel,rightValue,y);y+=row;
@@ -107,7 +107,6 @@ export default function ReceiptEnhancer(){
          ctx.textAlign='left';ctx.font='700 34px Arial';ctx.fillStyle='#092f48';ctx.fillText('Payments',64,y);y+=54;
          if(paymentRows.length){paymentRows.forEach(function(r){ctx.font='400 21px Arial';ctx.fillStyle='#173b50';ctx.textAlign='left';ctx.fillText(r[0]||'',72,y);if(r.length>2){ctx.textAlign='center';ctx.fillText(r[1]||'',820,y);ctx.textAlign='right';ctx.fillText(r[r.length-1]||'',1170,y)}else{ctx.textAlign='right';ctx.fillText(r[1]||'',1170,y)}y+=48;line(ctx,64,y-8,1176,y-8,'#e7eef1',1)}}else{ctx.font='400 21px Arial';ctx.fillStyle='#607985';ctx.fillText('No payment recorded yet.',72,y);y+=48}
          y+=18;roundRect(ctx,64,y,1112,76,16,'#eaf8f9');ctx.textAlign='center';ctx.fillStyle='#0b3a50';ctx.font='700 27px Arial';ctx.fillText('Thank you for choosing LabaFlow.',w/2,y+23);
-         canvas.height=y+118;
          return await new Promise(function(resolve,reject){canvas.toBlob(function(blob){blob?resolve(blob):reject(new Error('Unable to create image'))},'image/png',0.96)});
        }
        async function shareReceipt(){
