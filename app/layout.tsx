@@ -19,6 +19,7 @@ import "./services-mobile.css";
 import "./sync-mobile.css";
 import "./organization-admin.css";
 import "./admin-subpages-mobile.css";
+import "./customer/customer.css";
 import ServiceEditEnhancer from "./ServiceEditEnhancer";
 import NewOrderRouteEnhancer from "./NewOrderRouteEnhancer";
 import SidebarEnhancer from "./SidebarEnhancer";
