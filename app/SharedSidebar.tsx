@@ -1,16 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 type Branch={id:string;name:string};
 type Access={role?:string;branches?:Branch[];permissions?:Record<string,boolean>;features?:Record<string,boolean>;is_platform_admin?:boolean};
 type Context={profile?:{full_name:string|null;email:string};organization?:{name:string}|null};
 const label=(s:string)=>s.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
+const ACCESS_KEY="labaflow.sidebar.access",CONTEXT_KEY="labaflow.sidebar.context";
 
 export default function SharedSidebar({active}:{active?:string}){
  const [access,setAccess]=useState<Access>({}),[context,setContext]=useState<Context>({}),[collapsed,setCollapsed]=useState(false),[adminOpen,setAdminOpen]=useState(true);
- useEffect(()=>{setCollapsed(localStorage.getItem("labaflow.sidebar.collapsed")==="1");setAdminOpen(localStorage.getItem("labaflow.sidebar.adminOpen")!=="0");Promise.all([supabase.rpc("get_current_access_context"),supabase.rpc("get_my_labaflow_context")]).then(([a,c])=>{if(!a.error)setAccess(a.data??{});if(!c.error)setContext(c.data??{})})},[]);
+ const load=useCallback(async()=>{
+  if(!navigator.onLine)return;
+  const [a,c]=await Promise.all([supabase.rpc("get_current_access_context"),supabase.rpc("get_my_labaflow_context")]);
+  if(!a.error){const v=a.data??{};setAccess(v);localStorage.setItem(ACCESS_KEY,JSON.stringify(v))}
+  if(!c.error){const v=c.data??{};setContext(v);localStorage.setItem(CONTEXT_KEY,JSON.stringify(v))}
+ },[]);
+ useEffect(()=>{
+  setCollapsed(localStorage.getItem("labaflow.sidebar.collapsed")==="1");setAdminOpen(localStorage.getItem("labaflow.sidebar.adminOpen")!=="0");
+  try{const a=localStorage.getItem(ACCESS_KEY),c=localStorage.getItem(CONTEXT_KEY);if(a)setAccess(JSON.parse(a));if(c)setContext(JSON.parse(c))}catch{}
+  load();
+  const reconnect=()=>{setTimeout(()=>load(),250)};
+  window.addEventListener("online",reconnect);
+  return()=>window.removeEventListener("online",reconnect);
+ },[load]);
  function toggle(){setCollapsed(v=>{const next=!v;localStorage.setItem("labaflow.sidebar.collapsed",next?"1":"0");return next})}
  function toggleAdmin(){setAdminOpen(v=>{const next=!v;localStorage.setItem("labaflow.sidebar.adminOpen",next?"1":"0");return next})}
  const p=access.permissions??{};const branch=access.branches?.[0];const pickup=access.features?.pickup_delivery!==false;
