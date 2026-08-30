@@ -33,6 +33,7 @@ import OrdersReceiptEnhancer from "./OrdersReceiptEnhancer";
 import AutoPrintReceiptEnhancer from "./AutoPrintReceiptEnhancer";
 import CheckoutEnhancer from "./CheckoutEnhancer";
 import AdminSubpagesEnhancer from "./AdminSubpagesEnhancer";
+import CustomerPwaEnhancer from "./CustomerPwaEnhancer";
 
 export const metadata: Metadata = {
   title: "LabaFlow",
@@ -42,4 +43,4 @@ export const metadata: Metadata = {
   appleWebApp: {capable:true,title:"LabaFlow",statusBarStyle:"default"},
 };
 export const viewport: Viewport = {width:"device-width",initialScale:1,viewportFit:"cover",themeColor:"#0c3554"};
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {return <html lang="en"><body><ServiceEditEnhancer/><NewOrderRouteEnhancer/><SidebarEnhancer/><CameraQrEnhancer/><NewCustomerEnhancer/><NewOrderCustomerEnhancer/><OfflineEnhancer/><ReceiptEnhancer/><OrdersReceiptEnhancer/><AutoPrintReceiptEnhancer/><CheckoutEnhancer/><AdminSubpagesEnhancer/>{children}</body></html>}
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {return <html lang="en"><body><ServiceEditEnhancer/><NewOrderRouteEnhancer/><SidebarEnhancer/><CameraQrEnhancer/><NewCustomerEnhancer/><NewOrderCustomerEnhancer/><OfflineEnhancer/><ReceiptEnhancer/><OrdersReceiptEnhancer/><AutoPrintReceiptEnhancer/><CheckoutEnhancer/><AdminSubpagesEnhancer/><CustomerPwaEnhancer/>{children}</body></html>}
