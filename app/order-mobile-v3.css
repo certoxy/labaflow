@@ -1,18 +1,19 @@
 /* Mobile New Order - Option 3: structured step flow */
 @media(max-width:760px){
-  .newOrderExperience{padding:14px 12px 104px!important;background:#f5f8fa}
-  .newOrderHeader{position:relative;min-height:82px!important;padding:4px 112px 8px 2px!important;margin-bottom:8px!important}
+  aside[data-shared-sidebar]>.roleBadge{display:none!important;visibility:hidden!important;height:0!important;min-height:0!important;overflow:hidden!important;padding:0!important;margin:0!important}
+  .newOrderExperience{padding:12px 12px 104px!important;background:#f5f8fa}
+  .newOrderHeader{position:relative;min-height:76px!important;padding:2px 112px 8px 2px!important;margin-bottom:8px!important}
   .newOrderHeader .eyebrow{color:#0697a8!important;font-weight:900!important;font-size:10px!important;letter-spacing:1.35px!important}
-  .newOrderHeader h1{font-size:28px!important;line-height:1.05!important;margin:4px 0!important;color:#0a334c!important}
+  .newOrderHeader h1{font-size:27px!important;line-height:1.05!important;margin:4px 0!important;color:#0a334c!important}
   .newOrderHeader .muted{font-size:12px!important;color:#5d7582!important;max-width:245px!important}
-  .newOrderHeader .headerActions{position:absolute!important;right:0!important;top:12px!important;width:auto!important}
-  .newOrderHeader .headerActions button{min-height:40px!important;padding:7px 13px!important;border:1px solid #0799aa!important;background:white!important;color:#078b9c!important;font-size:12px!important;font-weight:850!important;border-radius:10px!important}
+  .newOrderHeader .headerActions{position:absolute!important;right:0!important;top:10px!important;width:auto!important}
+  .newOrderHeader .headerActions button{min-height:38px!important;padding:6px 12px!important;border:1px solid #0799aa!important;background:white!important;color:#078b9c!important;font-size:12px!important;font-weight:850!important;border-radius:10px!important}
 
   .newOrderMain{display:grid!important;grid-template-columns:1fr!important;gap:12px!important}
   .orderDetailsPanel,.mobileServicesPanel{position:relative!important;background:#fff!important;border:1px solid #e1eaee!important;border-radius:16px!important;box-shadow:0 5px 18px rgba(9,54,73,.07)!important;padding:14px!important}
 
   .orderDetailsPanel .sectionTitle{display:none!important}
-  .orderDetailsPanel::before{content:"1   Order Information";display:block;color:#0c3554;font-size:15px;font-weight:900;padding:2px 0 14px 48px;line-height:30px}
+  .orderDetailsPanel::before{content:"Order Information";display:block;color:#0c3554;font-size:15px;font-weight:900;padding:2px 0 14px 48px;line-height:30px}
   .orderDetailsPanel::after{content:"1";position:absolute;left:14px;top:14px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#079cac;color:#fff;font-size:14px;font-weight:900}
   .orderDetailsPanel .gridForm{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
   .orderDetailsPanel label{font-size:12px!important;font-weight:750!important;color:#36576a!important}
@@ -32,10 +33,11 @@
   .serviceSearch span{font-size:20px!important;color:#67838f!important}
   .serviceSearch input{height:42px!important;min-height:42px!important;font-size:14px!important}
   .mobileServicesPanel .servicePicker{display:grid!important;grid-template-columns:1fr!important;gap:0!important;border:1px solid #e0e8ec!important;border-radius:12px!important;overflow:hidden!important;background:#fff!important}
-  .mobileServiceCard,.mobileServiceCard.selected{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;width:100%!important;border:0!important;border-bottom:1px solid #edf2f4!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;overflow:visible!important}
+  .mobileServiceCard,.mobileServiceCard.selected{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;width:100%!important;border:0!important;border-bottom:1px solid #edf2f4!important;border-radius:0!important;box-shadow:none!important;background:#fff!important;overflow:hidden!important}
   .mobileServiceCard:last-child{border-bottom:0!important}
   .mobileServiceCard.selected{background:#f7fcfd!important}
   .serviceMain{min-height:64px!important;padding:9px 8px!important;gap:9px!important;border:0!important;background:transparent!important}
+  .serviceMain::before,.serviceMain::after{content:none!important;display:none!important}
   .serviceGlyph{width:38px!important;height:38px!important;min-width:38px!important;border-radius:10px!important;background:#eaf8f9!important;font-size:18px!important}
   .serviceMain strong{font-size:13px!important;line-height:1.15!important;color:#0b3550!important}
   .serviceMain small{margin-top:3px!important;font-size:10px!important;color:#5f7783!important}
@@ -43,7 +45,7 @@
   .mobileServiceCard>.qtyStepper button{width:30px!important;height:32px!important;min-height:32px!important;border-radius:0!important;background:#fff!important;color:#0796a7!important;font-size:17px!important;font-weight:900!important;padding:0!important}
   .mobileServiceCard>.qtyStepper b{display:grid!important;place-items:center!important;min-width:30px!important;height:32px!important;border-left:1px solid #edf2f4!important;border-right:1px solid #edf2f4!important;border-radius:0!important;background:#fff!important;color:#0c3554!important;padding:0!important;font-size:12px!important}
 
-  .newOrderMain::after{content:"3   Review & Checkout                                     ⌄";display:block;white-space:pre;overflow:hidden;background:#fff;border:1px solid #e1eaee;border-radius:15px;box-shadow:0 5px 18px rgba(9,54,73,.06);padding:15px 14px;color:#0c3554;font-size:14px;font-weight:900;line-height:34px;text-indent:42px;background-image:radial-gradient(circle at 31px 31px,#079cac 0,#079cac 17px,transparent 18px)}
+  .newOrderMain::after{content:"Review & Checkout                                      ⌄";display:block;white-space:pre;overflow:hidden;background:#fff;border:1px solid #e1eaee;border-radius:15px;box-shadow:0 5px 18px rgba(9,54,73,.06);padding:15px 14px;color:#0c3554;font-size:14px;font-weight:900;line-height:34px;text-indent:42px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='68' height='68'%3E%3Ccircle cx='31' cy='31' r='17' fill='%23079cac'/%3E%3Ctext x='31' y='36' font-family='Arial,sans-serif' font-size='14' font-weight='700' text-anchor='middle' fill='white'%3E3%3C/text%3E%3C/svg%3E");background-repeat:no-repeat;background-position:0 0;background-size:68px 68px}
 
   .desktopOrderSummary{display:none!important}
   .mobileCartBar{left:12px!important;right:12px!important;bottom:10px!important;padding:9px 10px 9px 12px!important;border-radius:15px!important;border:1px solid #d8e4e9!important;box-shadow:0 12px 34px rgba(6,48,67,.19)!important}
