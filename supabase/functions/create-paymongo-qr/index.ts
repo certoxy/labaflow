@@ -10,6 +10,7 @@ Deno.serve(async(req)=>{
   if(!auth)return json({error:"Authentication required"},401);
   const url=Deno.env.get("SUPABASE_URL")!,anon=Deno.env.get("SUPABASE_ANON_KEY")!,service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,paymongo=Deno.env.get("PAYMONGO_SECRET_KEY");
   if(!paymongo)return json({error:"PAYMONGO_SECRET_KEY is not configured"},500);
+  const testMode=paymongo.startsWith("sk_test_");
   const userDb=createClient(url,anon,{global:{headers:{Authorization:auth}}});
   const admin=createClient(url,service);
   const {data:{user},error:userError}=await userDb.auth.getUser();
@@ -31,11 +32,13 @@ Deno.serve(async(req)=>{
   const clientKey=intent.data.attributes.client_key;
   const method=await pm("payment_methods",{data:{attributes:{type:"qrph",expiry_seconds:1800}}});
   const attached=await pm(`payment_intents/${intentId}/attach`,{data:{attributes:{payment_method:method.data.id,client_key:clientKey}}});
-  const qr=attached.data?.attributes?.next_action?.code?.image_url;
+  const nextAction=attached.data?.attributes?.next_action;
+  const qr=nextAction?.code?.image_url;
+  const testUrl=nextAction?.code?.test_url??nextAction?.test_url??attached.data?.attributes?.test_url??null;
   if(!qr)throw new Error("PayMongo did not return a QR Ph image");
   const expiresAt=new Date(Date.now()+30*60*1000).toISOString();
   const {data:tx,error:txError}=await admin.from("payment_gateway_transactions").insert({organization_id:membership.organization_id,order_id:order.id,provider:"paymongo",provider_payment_intent_id:intentId,payment_method:"qrph",amount:charge,currency:"PHP",status:"awaiting_payment",qr_image_data:qr,expires_at:expiresAt}).select().single();
   if(txError)throw txError;
-  return json({transaction_id:tx.id,payment_intent_id:intentId,amount:charge,status:"awaiting_payment",qr_image_data:qr,expires_at:expiresAt});
+  return json({transaction_id:tx.id,payment_intent_id:intentId,amount:charge,status:"awaiting_payment",qr_image_data:qr,expires_at:expiresAt,test_mode:testMode,test_url:testMode?testUrl:null});
  }catch(e){return json({error:e instanceof Error?e.message:"Unable to create QR payment"},500)}
 });
