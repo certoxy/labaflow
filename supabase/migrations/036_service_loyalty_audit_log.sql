@@ -15,17 +15,14 @@ create table if not exists public.management_audit_log (
   performed_by uuid not null references public.profiles(id),
   created_at timestamptz not null default now()
 );
-
 create index if not exists management_audit_log_org_created_idx on public.management_audit_log(organization_id,created_at desc);
 create index if not exists management_audit_log_category_created_idx on public.management_audit_log(organization_id,category,created_at desc);
-
 alter table public.management_audit_log enable row level security;
 drop policy if exists "members read management audit log" on public.management_audit_log;
 create policy "members read management audit log" on public.management_audit_log for select to authenticated using(public.is_organization_member(organization_id));
 
-create or replace function public.create_laundry_service(
-  p_name text,p_description text,p_pricing_unit public.pricing_unit,p_default_price numeric,p_loyalty_points integer default 0
-) returns public.services language plpgsql security definer set search_path=public as $$
+create or replace function public.create_laundry_service(p_name text,p_description text,p_pricing_unit public.pricing_unit,p_default_price numeric,p_loyalty_points integer default 0)
+returns public.services language plpgsql security definer set search_path=public as $$
 declare v_org uuid; v_service public.services%rowtype;
 begin
  select organization_id into v_org from public.organization_memberships where user_id=auth.uid() and active order by created_at limit 1;
@@ -38,9 +35,8 @@ begin
  return v_service;
 end;$$;
 
-create or replace function public.update_laundry_service(
- p_service_id uuid,p_name text,p_description text,p_pricing_unit public.pricing_unit,p_default_price numeric,p_loyalty_points integer,p_active boolean
-) returns public.services language plpgsql security definer set search_path=public as $$
+create or replace function public.update_laundry_service(p_service_id uuid,p_name text,p_description text,p_pricing_unit public.pricing_unit,p_default_price numeric,p_loyalty_points integer,p_active boolean)
+returns public.services language plpgsql security definer set search_path=public as $$
 declare v_org uuid; v_service public.services%rowtype; v_old public.services%rowtype;
 begin
  select organization_id into v_org from public.organization_memberships where user_id=auth.uid() and active order by created_at limit 1;
@@ -55,7 +51,10 @@ begin
  return v_service;
 end;$$;
 
-create or replace function public.adjust_customer_loyalty(p_customer_id uuid,p_points integer,p_description text default null,p_branch_id uuid default null)
+-- The existing RPC has a different return type in earlier migrations. PostgreSQL cannot
+-- change a function return type with CREATE OR REPLACE, so explicitly replace this signature.
+drop function if exists public.adjust_customer_loyalty(uuid,integer,text,uuid);
+create function public.adjust_customer_loyalty(p_customer_id uuid,p_points integer,p_description text default null,p_branch_id uuid default null)
 returns public.customers language plpgsql security definer set search_path=public as $$
 declare v_customer public.customers%rowtype; v_before integer;
 begin
