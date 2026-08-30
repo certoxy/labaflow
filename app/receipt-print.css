@@ -1,0 +1,7 @@
+.receiptPrint{display:none}
+@media print{
+ body *{visibility:hidden!important}
+ .receiptPrint,.receiptPrint *{visibility:visible!important}
+ .receiptPrint{display:block!important;position:absolute;left:0;top:0;width:72mm;padding:2mm;font-family:Arial,sans-serif;font-size:11px;color:#000;background:#fff}
+ .receiptPrint h1{font-size:18px;text-align:center;margin:0 0 2px}.receiptPrint .center{text-align:center}.receiptPrint .line{border-top:1px dashed #000;margin:7px 0}.receiptPrint .row{display:flex;justify-content:space-between;gap:8px;margin:3px 0}.receiptPrint .row strong:last-child{text-align:right}.receiptPrint .total{font-size:14px;font-weight:700}.receiptPrint .small{font-size:9px}.receiptPrint .thanks{text-align:center;margin-top:10px;font-weight:700}@page{size:80mm auto;margin:2mm}
+}
