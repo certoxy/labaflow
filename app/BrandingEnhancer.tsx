@@ -42,11 +42,19 @@ export default function BrandingEnhancer(){
  useEffect(()=>{
   const logo=preferredLogo(branding),name=preferredName(branding);if(!logo)return;
   const apply=()=>{
-   document.querySelectorAll<HTMLImageElement>('img[src="/labaflow-icon.svg"]:not([data-labaflow-powered])').forEach(img=>{img.src=logo;img.dataset.tenantLogo="1";img.alt=name||"Business logo"});
-   document.querySelectorAll<HTMLElement>(".logoMark,.customerPortalLogo").forEach(el=>{if(el.closest("[data-labaflow-powered]"))return;el.innerHTML=`<img src="${logo.replaceAll('"','&quot;')}" alt="${(name||"Business logo").replaceAll('"','&quot;')}"/>`;el.classList.add("tenantLogoMark")});
-   const sidebarName=document.querySelector<HTMLElement>("[data-shared-sidebar] .brand .navText strong");if(sidebarName&&name)sidebarName.textContent=name;
+   document.querySelectorAll<HTMLImageElement>('img[src="/labaflow-icon.svg"]:not([data-labaflow-powered])').forEach(img=>{if(img.dataset.tenantLogo==="1")return;img.src=logo;img.dataset.tenantLogo="1";img.alt=name||"Business logo"});
+   document.querySelectorAll<HTMLElement>(".logoMark,.customerPortalLogo").forEach(el=>{
+    if(el.closest("[data-labaflow-powered]")||el.dataset.tenantLogoApplied==="1")return;
+    const img=document.createElement("img");img.src=logo;img.alt=name||"Business logo";
+    el.replaceChildren(img);el.dataset.tenantLogoApplied="1";el.classList.add("tenantLogoMark");
+   });
+   const sidebarName=document.querySelector<HTMLElement>("[data-shared-sidebar] .brand .navText strong");if(sidebarName&&name&&sidebarName.textContent!==name)sidebarName.textContent=name;
   };
-  apply();const observer=new MutationObserver(apply);observer.observe(document.body,{childList:true,subtree:true});return()=>observer.disconnect();
+  apply();
+  let scheduled=false;
+  const observer=new MutationObserver(()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(()=>{scheduled=false;apply()})});
+  observer.observe(document.body,{childList:true,subtree:true});
+  return()=>observer.disconnect();
  },[branding]);
 
  return <footer className="labaflowPoweredFooter" data-labaflow-powered>
