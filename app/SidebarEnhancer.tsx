@@ -5,8 +5,10 @@ import { supabase } from "../lib/supabase";
 
 export default function SidebarEnhancer(){
  useEffect(()=>{
-  let inventoryEnabled=false;
-  void supabase.rpc("get_current_access_context").then(({data})=>{inventoryEnabled=data?.features?.inventory===true;document.querySelectorAll<HTMLElement>('[data-shared-sidebar] button').forEach(button=>{if(button.textContent?.includes("Products & Inventory"))button.style.display=inventoryEnabled?"":"none"})});
+  let features:Record<string,boolean>={};
+  const featureTabs:Record<string,string[]>={customer_loyalty:["Loyalty","Loyalty Levels"],pickup_delivery:["Pickup & Delivery","Delivery Pricing"],inventory:["Products & Inventory"],qr_customer_id:["Customer QR"]};
+  const applyFeatureVisibility=()=>document.querySelectorAll<HTMLElement>(".sidebar button").forEach(button=>{const text=(button.querySelector(".navText")?.textContent||button.textContent||"").trim();const feature=Object.keys(featureTabs).find(key=>featureTabs[key].includes(text));if(feature)button.style.display=features[feature]===false?"none":""});
+  void supabase.rpc("get_current_access_context").then(({data})=>{features=data?.features??{};applyFeatureVisibility()});
   const captureDedicatedNav=(e:MouseEvent)=>{
    const target=e.target as HTMLElement|null;
    const button=target?.closest(".sidebar button") as HTMLButtonElement|null;
@@ -18,7 +20,7 @@ export default function SidebarEnhancer(){
   document.addEventListener("click",captureDedicatedNav,true);
 
   const enhance=()=>{
-   document.querySelectorAll<HTMLElement>('[data-shared-sidebar] button').forEach(button=>{if(button.textContent?.includes("Products & Inventory"))button.style.display=inventoryEnabled?"":"none"});
+   applyFeatureVisibility();
    const sidebar=document.querySelector<HTMLElement>(".sidebar:not([data-shared-sidebar])");
    if(!sidebar)return;
    const collapsed=localStorage.getItem("labaflow.sidebar.collapsed")==="1";sidebar.classList.toggle("collapsed",collapsed);
@@ -29,7 +31,7 @@ export default function SidebarEnhancer(){
    }
    const nav=sidebar.querySelector("nav");if(!nav)return;
    const rawButtons=Array.from(nav.querySelectorAll<HTMLElement>(":scope > button"));const hasOrgAdmin=rawButtons.some(x=>x.textContent?.includes("Organization Admin"));
-   if(hasOrgAdmin&&!nav.querySelector('[data-loyalty-levels-nav]')){const l=document.createElement("button");l.type="button";l.dataset.loyaltyLevelsNav="1";l.textContent="Loyalty Levels";l.title="Loyalty Levels";l.onclick=()=>{location.href="/organization/loyalty-levels"};const promo=Array.from(nav.querySelectorAll("button")).find(x=>x.textContent?.includes("Promo Codes"));promo?nav.insertBefore(l,promo):nav.appendChild(l)}
+   if(features.customer_loyalty!==false&&hasOrgAdmin&&!nav.querySelector('[data-loyalty-levels-nav]')){const l=document.createElement("button");l.type="button";l.dataset.loyaltyLevelsNav="1";l.textContent="Loyalty Levels";l.title="Loyalty Levels";l.onclick=()=>{location.href="/organization/loyalty-levels"};const promo=Array.from(nav.querySelectorAll("button")).find(x=>x.textContent?.includes("Promo Codes"));promo?nav.insertBefore(l,promo):nav.appendChild(l)}
    if(!nav.querySelector('[data-promo-nav]')&&hasOrgAdmin){const p=document.createElement("button");p.type="button";p.dataset.promoNav="1";p.textContent="Promo Codes";p.title="Promo Codes";p.onclick=()=>{location.href="/organization/promos"};const platform=Array.from(nav.querySelectorAll("button")).find(x=>x.textContent?.includes("Platform Admin"));platform?nav.insertBefore(p,platform):nav.appendChild(p)}
    nav.querySelectorAll(":scope > button").forEach(btn=>{if(!btn.querySelector(".navText")){const txt=(btn.textContent||"").trim();btn.textContent="";const i=document.createElement("span");i.className="navIcon";i.textContent=txt.slice(0,1);const t=document.createElement("span");t.className="navText";t.textContent=txt;btn.append(i,t);btn.setAttribute("title",txt)}})
    if(nav.dataset.grouped==="1")return;
@@ -38,7 +40,7 @@ export default function SidebarEnhancer(){
    const operations=makeSection("Operations",["Dashboard","New Order","Orders"]);const customers=makeSection("Customers",["Customers","Loyalty"]);const management=makeSection("Management",["Services & Pricing","Pickup & Delivery"]);const adminNames=["Organization Admin","Organization Settings","Loyalty Levels","Promo Codes","Delivery Pricing","Platform Admin"];const adminButtons=adminNames.map(find).filter(Boolean) as HTMLElement[];
    Array.from(nav.children).forEach(el=>el.remove());if(operations)nav.appendChild(operations);if(customers)nav.appendChild(customers);if(management)nav.appendChild(management);
    if(adminButtons.length){const admin=document.createElement("div");admin.className="navSection adminGroup";let open=localStorage.getItem("labaflow.sidebar.adminOpen")!=="0";const toggle=document.createElement("button");toggle.type="button";toggle.className="navGroupToggle";toggle.innerHTML='<span class="navIcon">A</span><span class="navText">Administration</span><span class="navChevron navText"></span>';const items=document.createElement("div");items.className="navGroupItems";adminButtons.forEach(b=>items.appendChild(b));const sync=()=>{admin.classList.toggle("open",open);items.style.display=open?"grid":"none";(toggle.querySelector(".navChevron") as HTMLElement).textContent=open?"⌄":"›"};toggle.onclick=()=>{open=!open;localStorage.setItem("labaflow.sidebar.adminOpen",open?"1":"0");sync()};sync();admin.append(toggle,items);nav.appendChild(admin)}
-   nav.dataset.grouped="1";
+   nav.dataset.grouped="1";applyFeatureVisibility();
   };
   enhance();const obs=new MutationObserver(enhance);obs.observe(document.body,{childList:true,subtree:true});return()=>{obs.disconnect();document.removeEventListener("click",captureDedicatedNav,true)}
  },[]);return null
