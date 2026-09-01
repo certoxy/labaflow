@@ -53,6 +53,25 @@ end $$;
 
 grant execute on function public.save_product_v2(uuid,uuid,text,text,numeric,numeric,integer,boolean) to authenticated;
 
+create or replace function public.get_products_inventory()
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare v_org uuid;
+begin
+ select organization_id into v_org from public.organization_memberships where user_id=auth.uid() and active order by created_at limit 1;
+ if v_org is null then raise exception 'Organization access required'; end if;
+ return coalesce((select jsonb_agg(jsonb_build_object(
+   'id',p.id,'name',p.name,'sku',p.sku,'barcode',p.barcode,'cost_price',p.cost_price,'selling_price',p.selling_price,
+   'loyalty_points',p.loyalty_points,'active',p.active,'created_branch_id',p.created_branch_id,
+   'branch_id',b.id,'branch_name',b.name,'branch_code',b.code,
+   'quantity',coalesce(i.quantity,0),'low_stock_level',coalesce(i.low_stock_level,0)
+ ) order by b.name,p.name)
+ from public.products p cross join public.branches b
+ left join public.branch_product_inventory i on i.product_id=p.id and i.branch_id=b.id
+ where p.organization_id=v_org and b.organization_id=v_org and b.active), '[]'::jsonb);
+end $$;
+
+grant execute on function public.get_products_inventory() to authenticated;
+
 create or replace function public.prevent_branch_code_change()
 returns trigger language plpgsql as $$
 begin
