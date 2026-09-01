@@ -6,112 +6,47 @@ import "./receipt.css";
 
 const peso=new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"});
 const label=(s:string)=>s.replaceAll("_"," ").replace(/\b\w/g,c=>c.toUpperCase());
+const money=(n:any)=>peso.format(Number(n||0));
+
+function wrapText(ctx:CanvasRenderingContext2D,text:string,maxWidth:number){
+ const words=String(text||"").split(/\s+/);const lines:string[]=[];let line="";
+ for(const word of words){const test=line?`${line} ${word}`:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word}else line=test}
+ if(line)lines.push(line);return lines;
+}
+
+async function loadLogo(src:string){
+ return await new Promise<HTMLImageElement|null>(resolve=>{if(!src)return resolve(null);const img=new Image();img.crossOrigin="anonymous";img.onload=()=>resolve(img);img.onerror=()=>resolve(null);img.src=src;setTimeout(()=>resolve(null),4000)});
+}
+
+async function buildReceiptImage(args:any){
+ const {o,customer,branchName,business,logo,address,phone,email,website,items,payments,balance,thanks}=args;
+ const width=900,pad=70,row=46;const height=1050+items.length*row+Math.max(payments.length,1)*row;
+ const canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;const ctx=canvas.getContext("2d")!;
+ ctx.fillStyle="#fff";ctx.fillRect(0,0,width,height);ctx.fillStyle="#0b3551";ctx.textAlign="center";
+ let y=55;const img=await loadLogo(logo);if(img){const h=90,w=Math.min(130,img.width*(h/img.height));ctx.drawImage(img,(width-w)/2,y,w,h);y+=112}
+ ctx.font="700 42px system-ui, sans-serif";ctx.fillText(business,width/2,y);y+=42;
+ if(branchName&&branchName!==business){ctx.font="700 24px system-ui, sans-serif";ctx.fillText(branchName,width/2,y);y+=32}
+ ctx.font="600 18px system-ui, sans-serif";ctx.fillStyle="#617b8b";ctx.fillText("Laundry Service Receipt",width/2,y);y+=34;
+ const contact=[address,phone,email,website].filter(Boolean).join("  •  ");ctx.font="16px system-ui, sans-serif";for(const line of wrapText(ctx,contact,width-pad*2)){ctx.fillText(line,width/2,y);y+=23}y+=18;
+ const rule=()=>{ctx.strokeStyle="#9db0ba";ctx.setLineDash([6,6]);ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(width-pad,y);ctx.stroke();ctx.setLineDash([]);y+=28};rule();
+ const pair=(l:string,v:string)=>{ctx.textAlign="left";ctx.fillStyle="#6a8190";ctx.font="18px system-ui, sans-serif";ctx.fillText(l,pad,y);ctx.fillStyle="#0d3550";ctx.font="700 19px system-ui, sans-serif";ctx.fillText(v,pad+190,y);y+=34};
+ pair("Order",o.order_code);pair("Date",new Date(o.created_at).toLocaleString());pair("Customer",customer?.full_name||"Walk-in Customer");pair("Status",label(o.status));pair("Payment",balance<=0?"Paid":label(o.payment_status));rule();
+ ctx.font="700 27px system-ui, sans-serif";ctx.fillStyle="#0b3551";ctx.fillText("Services",pad,y);y+=42;
+ ctx.font="700 16px system-ui, sans-serif";ctx.fillText("Service",pad,y);ctx.textAlign="right";ctx.fillText("Qty",530,y);ctx.fillText("Rate",680,y);ctx.fillText("Amount",width-pad,y);y+=26;
+ for(const x of items){ctx.strokeStyle="#e1e9ed";ctx.beginPath();ctx.moveTo(pad,y+10);ctx.lineTo(width-pad,y+10);ctx.stroke();ctx.textAlign="left";ctx.font="17px system-ui, sans-serif";ctx.fillText(x.service_name||"Service",pad,y+35);ctx.textAlign="right";ctx.fillText(String(x.quantity),530,y+35);ctx.fillText(money(x.unit_price),680,y+35);ctx.fillText(money(x.line_total),width-pad,y+35);y+=row}
+ y+=18;const total=(l:string,v:string,bold=false)=>{ctx.textAlign="left";ctx.font=`${bold?700:500} ${bold?27:19}px system-ui, sans-serif`;ctx.fillText(l,pad,y);ctx.textAlign="right";ctx.fillText(v,width-pad,y);y+=34};total("Subtotal",money(o.subtotal));if(Number(o.discount)>0)total("Discount",`-${money(o.discount)}`);total("Total",money(o.total),true);total("Paid",money(o.amount_paid));total("Balance",money(balance));y+=10;rule();
+ ctx.textAlign="left";ctx.font="700 25px system-ui, sans-serif";ctx.fillText("Payments",pad,y);y+=36;if(payments.length){for(const p of payments){ctx.font="16px system-ui, sans-serif";ctx.fillText(new Date(p.created_at).toLocaleString(),pad,y);ctx.textAlign="center";ctx.fillText(label(p.method),width/2,y);ctx.textAlign="right";ctx.fillText(money(p.amount),width-pad,y);ctx.textAlign="left";y+=row}}else{ctx.font="16px system-ui, sans-serif";ctx.fillText("No payment recorded yet.",pad,y);y+=row}
+ y+=16;ctx.fillStyle="#eaf8f9";ctx.fillRect(pad,y,width-pad*2,100);ctx.fillStyle="#0b3551";ctx.textAlign="center";ctx.font="700 18px system-ui, sans-serif";for(const line of wrapText(ctx,thanks,width-pad*2-40)){ctx.fillText(line,width/2,y+35);y+=22}y+=52;ctx.fillStyle="#6c818d";ctx.font="14px system-ui, sans-serif";ctx.fillText("Powered by LabaFlow · labaflow.paotechs.com",width/2,y);
+ return await new Promise<Blob>((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error("Could not create receipt image.")),"image/png",1));
+}
 
 export default function ReceiptPage(){
- const [data,setData]=useState<any>(null),[branding,setBranding]=useState<any>(null),[error,setError]=useState("");
+ const [data,setData]=useState<any>(null),[branding,setBranding]=useState<any>(null),[error,setError]=useState(""),[sharing,setSharing]=useState(false);
  const id=typeof window!=="undefined"?new URLSearchParams(location.search).get("id"):null;
-
- useEffect(()=>{(async()=>{
-  if(!id)return setError("Order ID is missing.");
-  const local=getStoredLocalStaffSession();let result:any;
-  if(local){
-   const r=await supabase.rpc("get_local_staff_order_checkout",{p_token:local.token,p_order_id:id});
-   if(r.error)return setError(r.error.message);result=r.data;
-  }else{
-   const [o,i,p]=await Promise.all([
-    supabase.from("laundry_orders").select("id,order_code,status,payment_status,subtotal,discount,total,amount_paid,created_at,notes,customers(full_name,customer_code,loyalty_points),branches(name,address,phone)").eq("id",id).maybeSingle(),
-    supabase.from("laundry_order_items").select("id,quantity,unit_price,line_total,services(name,pricing_unit)").eq("order_id",id).order("created_at"),
-    supabase.from("payments").select("id,amount,method,reference,created_at").eq("order_id",id).order("created_at")
-   ]);
-   if(o.error||!o.data)return setError(o.error?.message||"Order not found.");
-   result={order:o.data,items:(i.data??[]).map((x:any)=>({...x,service_name:Array.isArray(x.services)?x.services[0]?.name:x.services?.name})),payments:p.data??[]};
-  }
-  setData(result);
-  const b=await supabase.rpc("get_receipt_branding",{p_order_id:id,p_staff_token:local?.token??null});
-  if(!b.error)setBranding(b.data);
- })()},[id]);
-
+ useEffect(()=>{(async()=>{if(!id)return setError("Order ID is missing.");const local=getStoredLocalStaffSession();let result:any;if(local){const r=await supabase.rpc("get_local_staff_order_checkout",{p_token:local.token,p_order_id:id});if(r.error)return setError(r.error.message);result=r.data}else{const [o,i,p]=await Promise.all([supabase.from("laundry_orders").select("id,order_code,status,payment_status,subtotal,discount,total,amount_paid,created_at,notes,customers(full_name,customer_code,loyalty_points),branches(name,address,phone)").eq("id",id).maybeSingle(),supabase.from("laundry_order_items").select("id,quantity,unit_price,line_total,services(name,pricing_unit)").eq("order_id",id).order("created_at"),supabase.from("payments").select("id,amount,method,reference,created_at").eq("order_id",id).order("created_at")]);if(o.error||!o.data)return setError(o.error?.message||"Order not found.");result={order:o.data,items:(i.data??[]).map((x:any)=>({...x,service_name:Array.isArray(x.services)?x.services[0]?.name:x.services?.name})),payments:p.data??[]}}setData(result);const b=await supabase.rpc("get_receipt_branding",{p_order_id:id,p_staff_token:local?.token??null});if(!b.error)setBranding(b.data)})()},[id]);
  if(error)return <main className="center"><section className="onboardCard"><h2>Receipt unavailable</h2><p>{error}</p></section></main>;
  if(!data)return <main className="center"><div className="loader">Loading receipt…</div></main>;
-
- const o=data.order;
- const customer=Array.isArray(o.customers)?o.customers[0]:o.customers;
- const branch=Array.isArray(o.branches)?o.branches[0]:o.branches;
- const items=data.items??[],payments=data.payments??[];
- const balance=Math.max(Number(o.total)-Number(o.amount_paid),0);
- const points=Number(customer?.loyalty_points??data.customer?.loyalty_points??0);
- const business=branding?.organization_name||"LabaFlow";
- const branchName=branding?.branch_name||branch?.name||"";
- const logo=branding?.branch_logo_url||branding?.organization_logo_url||"/labaflow-icon.svg";
- const address=branding?.branch_address||branding?.business_address||branch?.address;
- const phone=branding?.branch_phone||branding?.business_phone||branch?.phone;
- const email=branding?.business_email;
- const website=branding?.business_website;
- const thanks=branding?.receipt_footer||`Thank you for choosing ${business}.`;
-
- return <main className="receiptPage">
-  <div className="receiptToolbar noPrint">
-   <button onClick={()=>history.back()}>← Back</button>
-   <button onClick={()=>window.print()}>↗ Share / Print</button>
-   <button onClick={()=>window.print()}>🖨 Print / PDF</button>
-  </div>
-
-  <article className="receiptCard">
-   <header className="receiptBrandHeader">
-    <img src={logo} alt={`${business} logo`}/>
-    <h1>{business}</h1>
-    {branchName&&branchName!==business&&<p className="receiptBranch">{branchName}</p>}
-    <small className="receiptType">Laundry Service Receipt</small>
-
-    {(address||phone||email||website)&&<div className="receiptContactBar">
-     <div className="receiptContactItem"><span className="receiptContactIcon">⌖</span><span>{address||"—"}</span></div>
-     <div className="receiptContactItem"><span className="receiptContactIcon">☎</span><span>{phone||"—"}</span></div>
-     <div className="receiptContactItem"><span className="receiptContactIcon">✉</span><span>{email||"—"}</span></div>
-     <div className="receiptContactItem"><span className="receiptContactIcon">◎</span><span>{website||"—"}</span></div>
-    </div>}
-   </header>
-
-   <section className="receiptMeta">
-    <div><span>Order</span><b>{o.order_code}</b></div>
-    <div><span>Date</span><b>{new Date(o.created_at).toLocaleString()}</b></div>
-    <div><span>Customer</span><b>{customer?.full_name||"Walk-in Customer"}</b></div>
-    <div><span>Status</span><b>{label(o.status)}</b></div>
-    {customer?.customer_code&&<div><span>Customer Code</span><b>{customer.customer_code}</b></div>}
-    <div><span>Payment</span><b>{balance<=0?"Paid":label(o.payment_status)}</b></div>
-    {customer&&<div><span>Loyalty Points</span><b>{points.toLocaleString()} points</b></div>}
-   </section>
-
-   <section className="receiptSection">
-    <h2>Services</h2>
-    <table className="receiptTable">
-     <thead><tr><th>Service</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead>
-     <tbody>{items.map((x:any)=><tr key={x.id}><td>{x.service_name||"Service"}</td><td>{x.quantity}</td><td>{peso.format(Number(x.unit_price))}</td><td>{peso.format(Number(x.line_total))}</td></tr>)}</tbody>
-    </table>
-    <div className="receiptTotals">
-     <div><span>Subtotal</span><b>{peso.format(Number(o.subtotal))}</b></div>
-     {Number(o.discount)>0&&<div><span>Discount</span><b>-{peso.format(Number(o.discount))}</b></div>}
-     <div className="grand"><span>Total</span><b>{peso.format(Number(o.total))}</b></div>
-     <div><span>Paid</span><b>{peso.format(Number(o.amount_paid))}</b></div>
-     <div className={balance>0?"balanceDue":""}><span>Balance</span><b>{peso.format(balance)}</b></div>
-    </div>
-   </section>
-
-   <section className="receiptSection">
-    <h2>Payments</h2>
-    {payments.length?<table className="receiptTable receiptPaymentsTable">
-     <thead><tr><th>Date & Time</th><th>Method</th><th>Amount</th></tr></thead>
-     <tbody>{payments.map((p:any)=><tr key={p.id}><td>{new Date(p.created_at).toLocaleString()}</td><td>{label(p.method)}</td><td>{peso.format(Number(p.amount))}</td></tr>)}</tbody>
-    </table>:<p className="receiptPaymentEmpty">No payment recorded yet.</p>}
-   </section>
-
-   <div className="receiptThanks">
-    <span className="receiptThanksIcon">♡</span>
-    <div><strong>{thanks}</strong><small>We appreciate your trust in our laundry service.</small></div>
-   </div>
-
-   <div className="receiptPowered" data-labaflow-powered>
-    <span className="receiptPoweredLogo">◉</span>Powered by <b>LabaFlow</b> · labaflow.paotechs.com · © 2026 PAO Technologies. All rights reserved.
-   </div>
-  </article>
- </main>;
+ const o=data.order,customer=Array.isArray(o.customers)?o.customers[0]:o.customers,branch=Array.isArray(o.branches)?o.branches[0]:o.branches,items=data.items??[],payments=data.payments??[],balance=Math.max(Number(o.total)-Number(o.amount_paid),0),points=Number(customer?.loyalty_points??data.customer?.loyalty_points??0),business=branding?.organization_name||"LabaFlow",branchName=branding?.branch_name||branch?.name||"",logo=branding?.branch_logo_url||branding?.organization_logo_url||"/labaflow-icon.svg",address=branding?.branch_address||branding?.business_address||branch?.address,phone=branding?.branch_phone||branding?.business_phone||branch?.phone,email=branding?.business_email,website=branding?.business_website,thanks=branding?.receipt_footer||`Thank you for choosing ${business}.`;
+ async function shareReceipt(){try{setSharing(true);const blob=await buildReceiptImage({o,customer,branchName,business,logo,address,phone,email,website,items,payments,balance,thanks});const file=new File([blob],`${o.order_code||"labaflow-receipt"}.png`,{type:"image/png"});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[file]}))){await navigator.share({title:`${business} receipt`,text:`Receipt ${o.order_code}`,files:[file]});return}const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=file.name;a.click();setTimeout(()=>URL.revokeObjectURL(url),3000);alert("Sharing is not supported by this browser, so the receipt image was downloaded instead.")}catch(e:any){if(e?.name!=="AbortError")alert(e?.message||"Unable to share receipt.")}finally{setSharing(false)}}
+ return <main className="receiptPage"><div className="receiptToolbar noPrint"><button onClick={()=>history.back()}>← Back</button><button onClick={shareReceipt} disabled={sharing}>{sharing?"Creating image…":"↗ Share"}</button><button onClick={()=>window.print()}>🖨 Print / PDF</button></div><article className="receiptCard"><header className="receiptBrandHeader"><img src={logo} alt={`${business} logo`}/><h1>{business}</h1>{branchName&&branchName!==business&&<p className="receiptBranch">{branchName}</p>}<small className="receiptType">Laundry Service Receipt</small>{(address||phone||email||website)&&<div className="receiptContactBar"><div className="receiptContactItem"><span className="receiptContactIcon">⌖</span><span>{address||"—"}</span></div><div className="receiptContactItem"><span className="receiptContactIcon">☎</span><span>{phone||"—"}</span></div><div className="receiptContactItem"><span className="receiptContactIcon">✉</span><span>{email||"—"}</span></div><div className="receiptContactItem"><span className="receiptContactIcon">◎</span><span>{website||"—"}</span></div></div>}</header><section className="receiptMeta"><div><span>Order</span><b>{o.order_code}</b></div><div><span>Date</span><b>{new Date(o.created_at).toLocaleString()}</b></div><div><span>Customer</span><b>{customer?.full_name||"Walk-in Customer"}</b></div><div><span>Status</span><b>{label(o.status)}</b></div>{customer?.customer_code&&<div><span>Customer Code</span><b>{customer.customer_code}</b></div>}<div><span>Payment</span><b>{balance<=0?"Paid":label(o.payment_status)}</b></div>{customer&&<div><span>Loyalty Points</span><b>{points.toLocaleString()} points</b></div>}</section><section className="receiptSection"><h2>Services</h2><table className="receiptTable"><thead><tr><th>Service</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>{items.map((x:any)=><tr key={x.id}><td>{x.service_name||"Service"}</td><td>{x.quantity}</td><td>{money(x.unit_price)}</td><td>{money(x.line_total)}</td></tr>)}</tbody></table><div className="receiptTotals"><div><span>Subtotal</span><b>{money(o.subtotal)}</b></div>{Number(o.discount)>0&&<div><span>Discount</span><b>-{money(o.discount)}</b></div>}<div className="grand"><span>Total</span><b>{money(o.total)}</b></div><div><span>Paid</span><b>{money(o.amount_paid)}</b></div><div className={balance>0?"balanceDue":""}><span>Balance</span><b>{money(balance)}</b></div></div></section><section className="receiptSection"><h2>Payments</h2>{payments.length?<table className="receiptTable receiptPaymentsTable"><thead><tr><th>Date & Time</th><th>Method</th><th>Amount</th></tr></thead><tbody>{payments.map((p:any)=><tr key={p.id}><td>{new Date(p.created_at).toLocaleString()}</td><td>{label(p.method)}</td><td>{money(p.amount)}</td></tr>)}</tbody></table>:<p className="receiptPaymentEmpty">No payment recorded yet.</p>}</section><div className="receiptThanks"><span className="receiptThanksIcon">♡</span><div><strong>{thanks}</strong><small>We appreciate your trust in our laundry service.</small></div></div><div className="receiptPowered" data-labaflow-powered><span className="receiptPoweredLogo">◉</span>Powered by <b>LabaFlow</b> · labaflow.paotechs.com · © 2026 PAO Technologies. All rights reserved.</div></article></main>;
 }
