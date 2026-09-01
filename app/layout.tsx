@@ -23,6 +23,7 @@ import "./organization-admin.css";
 import "./admin-subpages-mobile.css";
 import "./subscription-admin.css";
 import "./pwa-install.css";
+import "./catalog-modern.css";
 import "./customer/customer.css";
 import ServiceEditEnhancer from "./ServiceEditEnhancer";
 import NewOrderRouteEnhancer from "./NewOrderRouteEnhancer";
