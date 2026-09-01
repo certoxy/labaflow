@@ -1,34 +1,24 @@
-/* Desktop/tablet New Order layout repair.
-   Mobile remains controlled by order-mobile-v3.css. */
+/* Desktop/tablet New Order layout repair. Mobile remains controlled by order-mobile-v3.css. */
 @media (min-width:761px){
-  .newOrderExperience{max-width:none!important}
-  .newOrderMain{display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(360px,.65fr)!important;gap:20px!important;align-items:start!important}
-  .orderDetailsPanel{grid-column:1!important;grid-row:1!important;min-width:0!important}
-  .mobileServicesPanel{grid-column:2!important;grid-row:1!important;min-width:0!important;padding:22px!important}
-  .desktopOrderSummary{grid-column:1/-1!important;grid-row:2!important;min-width:0!important;display:block!important}
-  .desktopOrderSummary .orderSummary{position:static!important;width:100%!important}
-  .mobileServicesHead{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:12px!important;margin-bottom:14px!important}
-  .mobileServicesHead h2{margin:2px 0 0!important;font-size:24px!important}
-  .mobileServicesHead>span{white-space:nowrap!important;font-size:12px!important;color:#708692!important}
-  .serviceSearch{display:flex!important;align-items:center!important;gap:8px!important;border:1px solid #cfe0e8!important;border-radius:12px!important;background:#fff!important;padding:0 12px!important;margin-bottom:14px!important}
-  .serviceSearch span{flex:0 0 auto;color:#66828f!important}
-  .serviceSearch input{border:0!important;box-shadow:none!important;padding:12px 0!important;min-width:0!important}
-  .mobileServicesPanel .servicePicker{display:grid!important;grid-template-columns:1fr!important;gap:10px!important}
-  .mobileServiceCard,.mobileServiceCard.selected{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:10px!important;width:100%!important;min-width:0!important;border:1px solid #d9e7ed!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important}
-  .mobileServiceCard.selected{border-color:#91d5df!important;background:#f8fdfe!important}
-  .mobileServiceCard .serviceMain{position:relative!important;display:flex!important;align-items:center!important;gap:11px!important;width:100%!important;min-width:0!important;min-height:72px!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;padding:12px!important;text-align:left!important;transform:none!important}
-  .mobileServiceCard .serviceMain:hover{transform:none!important;box-shadow:none!important;background:#f7fcfd!important}
-  .mobileServiceCard .serviceMain::after{display:none!important;content:none!important}
-  .serviceGlyph{display:grid!important;place-items:center!important;flex:0 0 38px!important;width:38px!important;height:38px!important;border-radius:10px!important;background:#e9f8fa!important;color:#0b91a7!important}
-  .serviceMain>span:last-child{display:grid!important;gap:3px!important;min-width:0!important}
-  .serviceMain strong{display:block!important;font-size:14px!important;line-height:1.25!important;white-space:normal!important;overflow-wrap:anywhere!important;color:#10364f!important}
-  .serviceMain small{display:block!important;margin:0!important;font-size:11px!important;color:#718894!important}
-  .mobileServiceCard>.qtyStepper{display:grid!important;grid-template-columns:34px 36px 34px!important;align-items:center!important;gap:0!important;margin-right:10px!important;border:1px solid #cfe0e6!important;border-radius:10px!important;overflow:hidden!important;background:#fff!important;flex:0 0 auto!important}
-  .mobileServiceCard>.qtyStepper button{position:static!important;width:34px!important;height:34px!important;min-height:34px!important;border:0!important;border-radius:0!important;background:#f6fbfc!important;color:#078fa2!important;padding:0!important;font-size:19px!important;line-height:1!important;transform:none!important}
-  .mobileServiceCard>.qtyStepper button::after{display:none!important;content:none!important}
-  .mobileServiceCard>.qtyStepper b{display:grid!important;place-items:center!important;width:36px!important;height:34px!important;background:#0798aa!important;color:#fff!important;font-size:13px!important}
-  .mobileCartBar,.mobileCartBackdrop,.mobileCartSheet{display:none!important}
+ .newOrderExperience{max-width:none!important}
+ .newOrderMain{display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(340px,.65fr)!important;gap:20px!important;align-items:start!important}
+ .orderDetailsPanel{grid-column:1!important;grid-row:1!important;min-width:0!important}
+ .desktopOrderSummary{grid-column:2!important;grid-row:1!important;min-width:0!important;display:block!important}
+ .desktopOrderSummary .orderSummary{position:static!important;width:100%!important}
+ .mobileServicesPanel{grid-column:1/-1!important;grid-row:2!important;min-width:0!important;padding:22px!important}
+ .productSalesMount{grid-column:1/-1!important;grid-row:3!important;min-width:0!important}
+ .mobileServicesHead,.productSalesHead{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:12px!important;margin-bottom:14px!important}
+ .mobileServicesHead h2,.productSalesHead h2{margin:2px 0 0!important;font-size:24px!important}
+ .productSalesHead>div>span{font-size:12px!important;color:#708692!important}
+ .serviceSearch{display:flex!important;align-items:center!important;gap:8px!important;border:1px solid #cfe0e8!important;border-radius:12px!important;background:#fff!important;padding:0 12px!important;margin-bottom:14px!important}
+ .serviceSearch span{flex:0 0 auto;color:#66828f!important}.serviceSearch input{border:0!important;box-shadow:none!important;padding:12px 0!important;min-width:0!important}
+ .mobileServicesPanel .servicePicker{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ .mobileServiceCard,.mobileServiceCard.selected{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:10px!important;width:100%!important;min-width:0!important;border:1px solid #d9e7ed!important;border-radius:14px!important;background:#fff!important;overflow:hidden!important}
+ .mobileServiceCard.selected{border-color:#91d5df!important;background:#f8fdfe!important}.mobileServiceCard .serviceMain{position:relative!important;display:flex!important;align-items:center!important;gap:11px!important;width:100%!important;min-width:0!important;min-height:72px!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;padding:12px!important;text-align:left!important;transform:none!important}
+ .mobileServiceCard .serviceMain:hover{transform:none!important;box-shadow:none!important;background:#f7fcfd!important}.mobileServiceCard .serviceMain::after{display:none!important;content:none!important}.serviceGlyph{display:grid!important;place-items:center!important;flex:0 0 38px!important;width:38px!important;height:38px!important;border-radius:10px!important;background:#e9f8fa!important;color:#0b91a7!important}
+ .serviceMain>span:last-child{display:grid!important;gap:3px!important;min-width:0!important}.serviceMain strong{display:block!important;font-size:14px!important;line-height:1.25!important;white-space:normal!important;overflow-wrap:anywhere!important;color:#10364f!important}.serviceMain small{display:block!important;margin:0!important;font-size:11px!important;color:#718894!important}
+ .mobileServiceCard>.qtyStepper,.productQty{display:grid!important;grid-template-columns:34px 36px 34px!important;align-items:center!important;gap:0!important;border:1px solid #cfe0e6!important;border-radius:10px!important;overflow:hidden!important;background:#fff!important;width:max-content!important}.mobileServiceCard>.qtyStepper{margin-right:10px!important}.mobileServiceCard>.qtyStepper button,.productQty button{position:static!important;width:34px!important;height:34px!important;min-height:34px!important;border:0!important;border-radius:0!important;background:#f6fbfc!important;color:#078fa2!important;padding:0!important;font-size:19px!important;line-height:1!important;transform:none!important}.mobileServiceCard>.qtyStepper button::after{display:none!important;content:none!important}.mobileServiceCard>.qtyStepper b,.productQty b{display:grid!important;place-items:center!important;width:36px!important;height:34px!important;background:#0798aa!important;color:#fff!important;font-size:13px!important}
+ .mobileCartBar,.mobileCartBackdrop,.mobileCartSheet{display:none!important}
+ .productSalesPanel{padding:22px!important}.productCartSummary{display:flex!important;gap:12px!important;align-items:center!important}.productCartSummary strong{font-size:12px!important;color:#6b8290!important}.productCartSummary b{font-size:18px!important;color:#0b8fa4!important}.productSearch{max-width:520px!important}.productTableWrap{overflow-x:auto!important;border:1px solid #dce8ed!important;border-radius:14px!important}.productOrderTable{width:100%!important;border-collapse:collapse!important;min-width:760px!important}.productOrderTable th{padding:11px 14px!important;background:#f5fafb!important;color:#657d89!important;font-size:11px!important;text-transform:uppercase!important;letter-spacing:.04em!important;text-align:left!important}.productOrderTable td{padding:12px 14px!important;border-top:1px solid #e6eef1!important;vertical-align:middle!important;color:#244557!important;font-size:13px!important}.productOrderTable tr.selected td{background:#f7fdfe!important}.productOrderTable tr.outOfStock{opacity:.62!important}.productOrderTable td strong{display:block!important;color:#10364f!important}.productOrderTable td small{display:block!important;color:#82949d!important;margin-top:2px!important}.productOrderTable .num{text-align:right!important}.stockBadge{display:inline-block!important;min-width:38px!important;padding:4px 8px!important;border-radius:999px!important;background:#eaf8ef!important;color:#257443!important;text-align:center!important;font-size:11px!important;font-weight:700!important}.stockBadge.empty{background:#f4eeee!important;color:#956161!important}.lineTotal{font-weight:700!important;color:#0b8194!important}.productOrderFooter{display:flex!important;justify-content:flex-end!important;align-items:center!important;gap:20px!important;padding:14px 4px 0!important;color:#647c88!important}.productOrderFooter strong{font-size:18px!important;color:#10364f!important}.productSummaryRow{display:flex!important;justify-content:space-between!important;gap:16px!important;padding:8px 0!important;border-top:1px dashed #d7e3e8!important;color:#617985!important}.productSummaryRow strong{color:#10364f!important}
 }
-@media (min-width:1181px){
-  .newOrderMain{grid-template-columns:minmax(0,1.55fr) minmax(390px,.65fr)!important}
-}
+@media (min-width:1181px){.newOrderMain{grid-template-columns:minmax(0,1.55fr) minmax(390px,.65fr)!important}.mobileServicesPanel .servicePicker{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
