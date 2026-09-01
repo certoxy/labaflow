@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 export default function SidebarEnhancer(){
  useEffect(()=>{
+  let inventoryEnabled=false;
+  void supabase.rpc("get_current_access_context").then(({data})=>{inventoryEnabled=data?.features?.inventory===true;document.querySelectorAll<HTMLElement>('[data-shared-sidebar] button').forEach(button=>{if(button.textContent?.includes("Products & Inventory"))button.style.display=inventoryEnabled?"":"none"})});
   const captureDedicatedNav=(e:MouseEvent)=>{
    const target=e.target as HTMLElement|null;
    const button=target?.closest(".sidebar button") as HTMLButtonElement|null;
@@ -15,6 +18,7 @@ export default function SidebarEnhancer(){
   document.addEventListener("click",captureDedicatedNav,true);
 
   const enhance=()=>{
+   document.querySelectorAll<HTMLElement>('[data-shared-sidebar] button').forEach(button=>{if(button.textContent?.includes("Products & Inventory"))button.style.display=inventoryEnabled?"":"none"});
    const sidebar=document.querySelector<HTMLElement>(".sidebar:not([data-shared-sidebar])");
    if(!sidebar)return;
    const collapsed=localStorage.getItem("labaflow.sidebar.collapsed")==="1";sidebar.classList.toggle("collapsed",collapsed);
