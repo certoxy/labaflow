@@ -21,6 +21,7 @@ export default function AdminSubpagesEnhancer(){
    if(path==="/organization/loyalty-levels"){main.classList.add("adminSubpage","loyaltyLevelsPage");const checkbox=main.querySelector<HTMLInputElement>('input[type="checkbox"]');const lab=checkbox?.closest("label");if(lab){lab.classList.add("loyaltyActiveToggle");const span=lab.querySelector("span");if(span)span.childNodes.forEach(n=>{if(n.nodeType===Node.TEXT_NODE)n.textContent="Active"})}}
    if(path==="/organization/promos"){main.classList.add("adminSubpage","promoCodesPage");main.querySelectorAll<HTMLButtonElement>(".adminRow .miniBtn").forEach(btn=>{if(/Enable|Disable/.test(btn.textContent||"")){const on=/Disable/.test(btn.textContent||"");btn.classList.add("compactToggleBtn");btn.classList.toggle("on",on);btn.textContent=on?"On":"Off"}})}
    if(path==="/pickup-delivery")main.classList.add("pickupDeliveryPage");
+   if(path==="/admin/subscriptions"){const actions=main.querySelector<HTMLElement>(":scope > .panelHead .headerActions");if(actions&&!actions.querySelector('[data-upgrade-requests-link="1"]')){const btn=document.createElement("button");btn.className="primary";btn.type="button";btn.dataset.upgradeRequestsLink="1";btn.textContent="Upgrade Requests";btn.onclick=()=>{location.href="/admin/upgrade-requests"};actions.prepend(btn)}}
   };
   enhance();const obs=new MutationObserver(enhance);obs.observe(document.body,{childList:true,subtree:true,characterData:true});return()=>obs.disconnect()
  },[]);return null

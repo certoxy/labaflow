@@ -46,6 +46,7 @@ import ProductSalesEnhancer from "./ProductSalesEnhancer";
 import BranchCodeLockEnhancer from "./BranchCodeLockEnhancer";
 import TrialCountdownEnhancer from "./TrialCountdownEnhancer";
 import "./trial-countdown.css";
+import "./subscription-portal.css";
 
 export const metadata: Metadata = {
   title: "LabaFlow",
