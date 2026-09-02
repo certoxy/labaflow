@@ -45,8 +45,10 @@ import BrandingSettingsEnhancer from "./BrandingSettingsEnhancer";
 import ProductSalesEnhancer from "./ProductSalesEnhancer";
 import BranchCodeLockEnhancer from "./BranchCodeLockEnhancer";
 import TrialCountdownEnhancer from "./TrialCountdownEnhancer";
+import SupportModeBanner from "./SupportModeBanner";
 import "./trial-countdown.css";
 import "./subscription-portal.css";
+import "./support-mode.css";
 
 export const metadata: Metadata = {
   title: "LabaFlow",
@@ -56,4 +58,4 @@ export const metadata: Metadata = {
   appleWebApp: {capable:true,title:"LabaFlow",statusBarStyle:"default"},
 };
 export const viewport: Viewport = {width:"device-width",initialScale:1,viewportFit:"cover",themeColor:"#0c3554"};
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {return <html lang="en"><body><ServiceEditEnhancer/><NewOrderRouteEnhancer/><SidebarEnhancer/><CameraQrEnhancer/><NewCustomerEnhancer/><NewOrderCustomerEnhancer/><ProductSalesEnhancer/><BranchCodeLockEnhancer/><TrialCountdownEnhancer/><OfflineEnhancer/><ReceiptEnhancer/><OrdersReceiptEnhancer/><AutoPrintReceiptEnhancer/><CheckoutEnhancer/><AdminSubpagesEnhancer/><CustomerPwaEnhancer/><OrgPwaEnhancer/><BrandingSettingsEnhancer/>{children}<BrandingEnhancer/></body></html>}
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {return <html lang="en"><body><SupportModeBanner/><ServiceEditEnhancer/><NewOrderRouteEnhancer/><SidebarEnhancer/><CameraQrEnhancer/><NewCustomerEnhancer/><NewOrderCustomerEnhancer/><ProductSalesEnhancer/><BranchCodeLockEnhancer/><TrialCountdownEnhancer/><OfflineEnhancer/><ReceiptEnhancer/><OrdersReceiptEnhancer/><AutoPrintReceiptEnhancer/><CheckoutEnhancer/><AdminSubpagesEnhancer/><CustomerPwaEnhancer/><OrgPwaEnhancer/><BrandingSettingsEnhancer/>{children}<BrandingEnhancer/></body></html>}
