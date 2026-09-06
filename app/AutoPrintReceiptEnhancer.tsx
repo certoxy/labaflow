@@ -11,7 +11,7 @@ export default function AutoPrintReceiptEnhancer(){
   const tryPrint=()=>{
    if(triggered.current)return true;
    const buttons=Array.from(document.querySelectorAll("button"));
-   const printButton=buttons.find(b=>(b.textContent||"").trim()==="Print Receipt") as HTMLButtonElement|undefined;
+   const printButton=buttons.find(b=>(b.textContent||"").trim()==="Print / PDF") as HTMLButtonElement|undefined;
    if(!printButton)return false;
    triggered.current=true;
    const clean=new URL(location.href);clean.searchParams.delete("print");history.replaceState({},"",clean.toString());
