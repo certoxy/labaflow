@@ -52,6 +52,8 @@ jobs:
           fi
       - name: Generate and synchronize Android project
         run: npm run android:add && npm run android:sync
+      - name: Apply LabaFlow and PAO Technologies launcher icon
+        run: cp -R resources/android/. android/app/src/main/res/
       - name: Set Android build version
         run: |
           sed -i "s/versionCode [0-9][0-9]*/versionCode ${{ github.run_number }}/" android/app/build.gradle

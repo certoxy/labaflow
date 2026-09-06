@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="LabaFlow by PAO Technologies">
+  <defs>
+    <linearGradient id="flow" x1="174" y1="760" x2="830" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1687c8"/>
+      <stop offset="1" stop-color="#27c2c7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="224" fill="#ffffff"/>
+  <g transform="translate(70 28) scale(1.72)">
+    <path d="M111 350c59-4 86-43 130-53 48-11 78 3 119 5-36 13-61 46-102 57-47 13-91 2-147-9Z" fill="url(#flow)"/>
+    <path d="M95 319c49-4 80-42 123-53 42-11 73-1 111 3-34 11-59 39-95 50-45 14-89 11-139 0Z" fill="#0f5d86"/>
+    <path d="M153 125c58-55 169-72 244-2 43 40 59 102 43 159-9-16-20-30-34-41 4-35-8-73-35-98-48-45-123-42-169 7-12 12-21 26-27 42-13-8-28-13-45-14 5-20 12-38 23-53Z" fill="url(#flow)"/>
+    <rect x="190" y="143" width="158" height="185" rx="22" fill="#0c3554"/>
+    <rect x="210" y="164" width="118" height="28" rx="8" fill="#133f60"/>
+    <circle cx="304" cy="178" r="5" fill="#ffffff"/>
+    <circle cx="321" cy="178" r="5" fill="#ffffff"/>
+    <circle cx="268" cy="252" r="59" fill="#ffffff"/>
+    <circle cx="268" cy="252" r="45" fill="#dff8fb"/>
+    <path d="M226 261c24 10 42 12 62 3 12-5 20-12 25-19-3 28-21 50-45 50-22 0-39-15-42-34Z" fill="url(#flow)"/>
+    <circle cx="129" cy="217" r="16" fill="#32c7c8"/>
+    <circle cx="112" cy="181" r="11" fill="#4bd5d0"/>
+    <circle cx="149" cy="165" r="8" fill="#27b8c3"/>
+  </g>
+  <path d="M0 790h1024v234H0z" fill="#0c3554"/>
+  <text x="512" y="895" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="112" font-weight="900" letter-spacing="12" fill="#ffffff">PAO</text>
+  <text x="512" y="958" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="36" font-weight="700" letter-spacing="8" fill="#5ee4e0">TECHNOLOGIES</text>
+</svg>
