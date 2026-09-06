@@ -85,7 +85,7 @@ function actualReceiptBytes(receipt:BluetoothReceipt){
 
 const wait=(milliseconds:number)=>new Promise(resolve=>setTimeout(resolve,milliseconds));
 async function withTimeout<T>(operation:Promise<T>,milliseconds=8000){let timer:ReturnType<typeof setTimeout>|undefined;try{return await Promise.race([operation,new Promise<T>((_,reject)=>{timer=setTimeout(()=>reject(new Error("The printer stopped responding. Reconnect it in Printer Settings, then try again.")),milliseconds)})])}finally{if(timer)clearTimeout(timer)}}
-const base64=(bytes:Uint8Array)=>{let value="";for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value)};
+const hexadecimal=(bytes:Uint8Array)=>Array.from(bytes,byte=>byte.toString(16).padStart(2,"0")).join("");
 async function sendToNativePrinter(bytes:Uint8Array){
  const plugin=await initializeNativeBle(),device=await resolvePrinter();let discovered:any;
  try{
@@ -93,7 +93,7 @@ async function sendToNativePrinter(bytes:Uint8Array){
   const services=discovered?.services??discovered??[];let target:any=null;
   for(const service of services){const characteristic=(service.characteristics??[]).find((item:any)=>item.properties?.write||item.properties?.writeWithoutResponse);if(characteristic){target={service:service.uuid,characteristic:characteristic.uuid,withResponse:Boolean(characteristic.properties?.write)};break}}
   if(!target)throw new Error("The printer connected, but no supported ESC/POS write channel was found.");
-  for(let offset=0;offset<bytes.length;offset+=20){const value=base64(bytes.slice(offset,offset+20)),options={deviceId:device.id,service:target.service,characteristic:target.characteristic,value};if(target.withResponse)await withTimeout(plugin.write(options));else await withTimeout(plugin.writeWithoutResponse(options));await wait(25)}
+  for(let offset=0;offset<bytes.length;offset+=20){const value=hexadecimal(bytes.slice(offset,offset+20)),options={deviceId:device.id,service:target.service,characteristic:target.characteristic,value};if(target.withResponse)await withTimeout(plugin.write(options));else await withTimeout(plugin.writeWithoutResponse(options));await wait(25)}
   return String(device.name||"Bluetooth printer");
  }finally{
   await wait(150);
