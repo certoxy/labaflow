@@ -17,17 +17,24 @@ export function loadPrinterSettings():PrinterSettings{
 }
 export function savePrinterSettings(settings:PrinterSettings){localStorage.setItem(STORAGE_KEY,JSON.stringify(settings));window.dispatchEvent(new CustomEvent("labaflow:printer-settings",{detail:settings}))}
 export function supportsWebBluetooth(){return typeof navigator!=="undefined"&&Boolean((navigator as any).bluetooth?.requestDevice)}
-export async function chooseBluetoothPrinter(){
+async function requestBluetoothPrinter(){
  const bluetooth=(navigator as any).bluetooth;if(!bluetooth?.requestDevice)throw new Error("Bluetooth printer discovery is not supported by this browser.");
- const device=await bluetooth.requestDevice({acceptAllDevices:true,optionalServices:printerServices});activeDevice=device;let connected=false;
+ const device=await bluetooth.requestDevice({acceptAllDevices:true,optionalServices:printerServices});activeDevice=device;return device;
+}
+export async function chooseBluetoothPrinter(){
+ const device=await requestBluetoothPrinter();let connected=false;
  if(device.gatt){try{await device.gatt.connect();connected=Boolean(device.gatt.connected)}catch{connected=false}}
  return {id:String(device.id||""),name:String(device.name||"Bluetooth printer"),connected};
 }
 
 async function resolvePrinter(){
  const saved=loadPrinterSettings();if(activeDevice?.id===saved.deviceId)return activeDevice;
- const bluetooth=(navigator as any).bluetooth;if(bluetooth?.getDevices&&saved.deviceId){const devices=await bluetooth.getDevices();activeDevice=devices.find((d:any)=>d.id===saved.deviceId)||null}
- if(!activeDevice)throw new Error("Reconnect the Bluetooth printer, then try printing again.");return activeDevice;
+ if(activeDevice&&activeDevice.id!==saved.deviceId)activeDevice=null;
+ if(!activeDevice){
+  try{const device=await requestBluetoothPrinter();savePrinterSettings({...saved,deviceId:String(device.id||""),deviceName:String(device.name||"Bluetooth printer")})}
+  catch(error:any){if(error?.name==="NotFoundError")throw new Error("No printer was selected. Tap Print 58mm and select the Bluetooth printer to continue.");throw error}
+ }
+ return activeDevice;
 }
 
 async function writableCharacteristic(device:any){
