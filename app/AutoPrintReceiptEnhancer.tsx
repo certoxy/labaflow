@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect,useRef} from "react";
+import {loadPrinterSettings} from "../lib/printerSettings";
 
 export default function AutoPrintReceiptEnhancer(){
  const triggered=useRef(false);
@@ -11,7 +12,8 @@ export default function AutoPrintReceiptEnhancer(){
   const tryPrint=()=>{
    if(triggered.current)return true;
    const buttons=Array.from(document.querySelectorAll("button"));
-   const printButton=buttons.find(b=>(b.textContent||"").trim()==="Print / PDF") as HTMLButtonElement|undefined;
+   const preferred=loadPrinterSettings().defaultFormat==="58mm"?"Print 58mm":"Print / PDF";
+   const printButton=buttons.find(b=>(b.textContent||"").trim()===preferred) as HTMLButtonElement|undefined;
    if(!printButton)return false;
    triggered.current=true;
    const clean=new URL(location.href);clean.searchParams.delete("print");history.replaceState({},"",clean.toString());
