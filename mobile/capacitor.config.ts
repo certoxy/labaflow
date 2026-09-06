@@ -1,10 +1,11 @@
 import type {CapacitorConfig} from "@capacitor/cli";
 
 const appUrl=process.env.LABAFLOW_APP_URL||"https://staging.labaflow.paotechs.com";
+const isProduction=appUrl==="https://labaflow.paotechs.com";
 
 const config:CapacitorConfig={
- appId:"com.paotechs.labaflow",
- appName:"LabaFlow",
+ appId:isProduction?"com.paotechs.labaflow":"com.paotechs.labaflow.staging",
+ appName:isProduction?"LabaFlow":"LabaFlow Staging",
  webDir:"www",
  server:{
   url:appUrl,
