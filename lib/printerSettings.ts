@@ -69,7 +69,19 @@ function actualReceiptBytes(receipt:BluetoothReceipt){
  const encoder=new TextEncoder(),parts=[new Uint8Array([0x1b,0x40,0x1b,0x61,0x00]),encoder.encode(lines.join("\n")+"\n\n\n"),new Uint8Array([0x1d,0x56,0x00])],size=parts.reduce((n,p)=>n+p.length,0),result=new Uint8Array(size);let offset=0;for(const part of parts){result.set(part,offset);offset+=part.length}return result;
 }
 
-async function sendToPrinter(bytes:Uint8Array){const device=await resolvePrinter(),characteristic=await writableCharacteristic(device);for(let offset=0;offset<bytes.length;offset+=100){const chunk=bytes.slice(offset,offset+100);if(characteristic.properties?.writeWithoutResponse&&characteristic.writeValueWithoutResponse)await characteristic.writeValueWithoutResponse(chunk);else await characteristic.writeValue(chunk)}return String(device.name||"Bluetooth printer")}
+const wait=(milliseconds:number)=>new Promise(resolve=>setTimeout(resolve,milliseconds));
+async function withTimeout<T>(operation:Promise<T>,milliseconds=8000){let timer:ReturnType<typeof setTimeout>|undefined;try{return await Promise.race([operation,new Promise<T>((_,reject)=>{timer=setTimeout(()=>reject(new Error("The printer stopped responding. Reconnect it in Printer Settings, then try again.")),milliseconds)})])}finally{if(timer)clearTimeout(timer)}}
+async function sendToPrinter(bytes:Uint8Array){
+ const device=await resolvePrinter(),characteristic=await writableCharacteristic(device),chunkSize=20;
+ for(let offset=0;offset<bytes.length;offset+=chunkSize){
+  const chunk=bytes.slice(offset,offset+chunkSize);
+  if(characteristic.properties?.write&&characteristic.writeValue)await withTimeout(characteristic.writeValue(chunk));
+  else if(characteristic.properties?.writeWithoutResponse&&characteristic.writeValueWithoutResponse)await withTimeout(characteristic.writeValueWithoutResponse(chunk));
+  else throw new Error("The printer's Bluetooth write channel is no longer available. Reconnect it in Printer Settings.");
+  await wait(25);
+ }
+ return String(device.name||"Bluetooth printer");
+}
 
 export async function printBluetoothTest(){
  return sendToPrinter(receiptBytes([`Date: ${new Date().toLocaleString()}`,"Connection: Direct Bluetooth","Format: 58 mm ESC/POS"]));
