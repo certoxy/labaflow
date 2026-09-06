@@ -1,6 +1,14 @@
 name: Build Android pilot
 
 on:
+  push:
+    branches:
+      - develop
+    paths:
+      - "mobile/**"
+      - "lib/printerSettings.ts"
+      - "app/organization/printer/**"
+      - ".github/workflows/android-app.yml"
   workflow_dispatch:
     inputs:
       environment:
@@ -33,7 +41,7 @@ jobs:
         run: npm ci
       - name: Select LabaFlow environment
         run: |
-          if [ "${{ inputs.environment }}" = "production" ]; then
+          if [ "${{ inputs.environment || 'staging' }}" = "production" ]; then
             echo "LABAFLOW_APP_URL=https://labaflow.paotechs.com" >> "$GITHUB_ENV"
           else
             echo "LABAFLOW_APP_URL=https://staging.labaflow.paotechs.com" >> "$GITHUB_ENV"
