@@ -2,7 +2,7 @@
 import {useEffect,useState} from "react";
 import {supabase} from "../../lib/supabase";
 import {getStoredLocalStaffSession} from "../../lib/localStaff";
-import {loadPrinterSettings,type ReceiptPrintFormat} from "../../lib/printerSettings";
+import {loadPrinterSettings,printBluetoothReceipt,type ReceiptPrintFormat} from "../../lib/printerSettings";
 import "./receipt.css";
 
 const peso=new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"});
@@ -43,14 +43,21 @@ async function buildReceiptImage(args:any){
 }
 
 export default function ReceiptPage(){
- const [data,setData]=useState<any>(null),[branding,setBranding]=useState<any>(null),[error,setError]=useState(""),[sharing,setSharing]=useState(false),[defaultPrint,setDefaultPrint]=useState<ReceiptPrintFormat>("58mm");
+ const [data,setData]=useState<any>(null),[branding,setBranding]=useState<any>(null),[error,setError]=useState(""),[sharing,setSharing]=useState(false),[printing,setPrinting]=useState(false),[defaultPrint,setDefaultPrint]=useState<ReceiptPrintFormat>("58mm");
  const id=typeof window!=="undefined"?new URLSearchParams(location.search).get("id"):null;
  useEffect(()=>{(async()=>{if(!id)return setError("Order ID is missing.");const local=getStoredLocalStaffSession();let result:any;if(local){const r=await supabase.rpc("get_local_staff_order_checkout",{p_token:local.token,p_order_id:id});if(r.error)return setError(r.error.message);result=r.data}else{const [o,i,products,p]=await Promise.all([supabase.from("laundry_orders").select("id,order_code,status,payment_status,subtotal,discount,total,amount_paid,created_at,notes,customers(full_name,customer_code,loyalty_points),branches(name,address,phone)").eq("id",id).maybeSingle(),supabase.from("laundry_order_items").select("id,quantity,unit_price,line_total,services(name,pricing_unit)").eq("order_id",id).order("created_at"),supabase.rpc("get_order_product_items",{p_order_id:id}),supabase.from("payments").select("id,amount,method,reference,created_at").eq("order_id",id).order("created_at")]);if(o.error||!o.data)return setError(o.error?.message||"Order not found.");result={order:o.data,items:(i.data??[]).map((x:any)=>({...x,service_name:Array.isArray(x.services)?x.services[0]?.name:x.services?.name})),product_items:products.error?[]:products.data??[],payments:p.data??[]}}setData(result);const b=await supabase.rpc("get_receipt_branding",{p_order_id:id,p_staff_token:local?.token??null});if(!b.error)setBranding(b.data)})()},[id]);
  useEffect(()=>{const sync=()=>setDefaultPrint(loadPrinterSettings().defaultFormat);sync();window.addEventListener("labaflow:printer-settings",sync);return()=>window.removeEventListener("labaflow:printer-settings",sync)},[]);
  if(error)return <main className="center"><section className="onboardCard"><h2>Receipt unavailable</h2><p>{error}</p></section></main>;
  if(!data)return <main className="center"><div className="loader">Loading receipt…</div></main>;
  const o=data.order,customer=Array.isArray(o.customers)?o.customers[0]:o.customers,branch=Array.isArray(o.branches)?o.branches[0]:o.branches,items=data.items??[],products=data.product_items??[],payments=data.payments??[],balance=Math.max(Number(o.total)-Number(o.amount_paid),0),points=Number(customer?.loyalty_points??data.customer?.loyalty_points??0),business=branding?.organization_name||"LabaFlow",branchName=branding?.branch_name||branch?.name||"",logo=branding?.branch_logo_url||branding?.organization_logo_url||"/labaflow-icon.svg",address=branding?.branch_address||branding?.business_address||branch?.address,phone=branding?.branch_phone||branding?.business_phone||branch?.phone,email=branding?.business_email,website=branding?.business_website,thanks=branding?.receipt_footer||`Thank you for choosing ${business}.`;
- function printReceipt(format:"standard"|"58mm"){
+ async function printReceipt(format:"standard"|"58mm"){
+  if(printing)return;
+  const settings=loadPrinterSettings();
+  if(format==="58mm"&&settings.connectionMode==="web_bluetooth"){
+   try{setPrinting(true);await printBluetoothReceipt({business,branch:branchName,address,phone,orderCode:o.order_code,createdAt:o.created_at,customer:customer?.full_name||"Walk-in Customer",customerCode:customer?.customer_code,status:label(o.status),paymentStatus:balance<=0?"Paid":label(o.payment_status),items:items.map((x:any)=>({name:x.service_name||"Service",quantity:x.quantity,unitPrice:Number(x.unit_price),lineTotal:Number(x.line_total)})),products:products.map((x:any)=>({name:x.product_name||x.name||"Product",quantity:x.quantity,unitPrice:Number(x.unit_price),lineTotal:Number(x.line_total)})),subtotal:Number(o.subtotal),discount:Number(o.discount),total:Number(o.total),amountPaid:Number(o.amount_paid),balance,payments:payments.map((p:any)=>({createdAt:p.created_at,method:label(p.method),amount:Number(p.amount),reference:p.reference})),notes:o.notes,footer:thanks});}
+   catch(e:any){alert(`${e?.message||"Unable to print the receipt."} Open Printer Settings to reconnect the Bluetooth printer.`)}finally{setPrinting(false)}
+   return;
+  }
   document.documentElement.dataset.receiptPrint=format;
   document.getElementById("receipt-page-size")?.remove();
   const pageStyle=document.createElement("style");pageStyle.id="receipt-page-size";pageStyle.textContent=format==="58mm"?"@page{size:58mm auto;margin:2mm}":"@page{size:auto;margin:10mm}";document.head.appendChild(pageStyle);

@@ -3,12 +3,13 @@
 import {useEffect,useMemo,useState} from "react";
 import {supabase} from "../../lib/supabase";
 import {getStoredLocalStaffSession,getLocalStaffOperationalContext} from "../../lib/localStaff";
-import {loadPrinterSettings,type ReceiptPrintFormat} from "../../lib/printerSettings";
+import {loadPrinterSettings,printBluetoothReceipt,type ReceiptPrintFormat} from "../../lib/printerSettings";
 
 type CustomerRef={full_name:string;customer_code:string};
 type BranchRef={id:string;name:string;code?:string|null;address?:string|null;phone?:string|null};
 type Order={id:string;order_code:string;branch_id:string;customer_id:string|null;status:string;payment_status:string;subtotal:number;discount:number;total:number;amount_paid:number;notes:string|null;created_at:string;customers:CustomerRef|null;branch?:BranchRef|null};
 type OrderItem={id:string;service_id:string;service_name:string;pricing_unit:string;quantity:number;unit_price:number;line_total:number;notes:string|null};
+type ProductItem={id:string;product_name?:string;name?:string;quantity:number;unit_price:number;line_total:number};
 type PaymentRecord={id:string;amount:number;method:string;reference:string|null;created_at:string};
 type Access={settings?:Record<string,any>;permissions?:Record<string,boolean>;branches?:BranchRef[]};
 type GCashAccount={merchant_name:string|null;account_number:string|null;qr_image_url:string|null;instructions:string|null;active:boolean};
@@ -19,7 +20,7 @@ const fmtQty=(n:number)=>Number.isInteger(n)?String(n):n.toLocaleString("en-PH",
 const esc=(v:unknown)=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]||m));
 
 export default function OrderDetailsPage(){
- const [order,setOrder]=useState<Order|null>(null),[items,setItems]=useState<OrderItem[]>([]),[payments,setPayments]=useState<PaymentRecord[]>([]),[access,setAccess]=useState<Access>({}),[gcash,setGcash]=useState<GCashAccount|null>(null),[message,setMessage]=useState(""),[loading,setLoading]=useState(true);
+ const [order,setOrder]=useState<Order|null>(null),[items,setItems]=useState<OrderItem[]>([]),[products,setProducts]=useState<ProductItem[]>([]),[payments,setPayments]=useState<PaymentRecord[]>([]),[access,setAccess]=useState<Access>({}),[branding,setBranding]=useState<any>(null),[gcash,setGcash]=useState<GCashAccount|null>(null),[message,setMessage]=useState(""),[loading,setLoading]=useState(true),[printing,setPrinting]=useState(false);
  const [payment,setPayment]=useState({amount:"",method:"cash",reference:""}),[defaultPrint,setDefaultPrint]=useState<ReceiptPrintFormat>("58mm");
  const orderId=typeof window!=="undefined"?new URLSearchParams(window.location.search).get("id"):null;
  useEffect(()=>{void load()},[]);
@@ -30,9 +31,10 @@ export default function OrderDetailsPage(){
   if(!orderId){setMessage("Order ID is missing.");setLoading(false);return}
   const local=getStoredLocalStaffSession();
   if(local){
-   const [ctx,detail]=await Promise.all([
+   const [ctx,detail,brand]=await Promise.all([
     getLocalStaffOperationalContext(),
-    supabase.rpc("get_local_staff_order_checkout",{p_token:local.token,p_order_id:orderId})
+    supabase.rpc("get_local_staff_order_checkout",{p_token:local.token,p_order_id:orderId}),
+    supabase.rpc("get_receipt_branding",{p_order_id:orderId,p_staff_token:local.token})
    ]);
    if(ctx.error||!ctx.data){setMessage(ctx.error?.message||"Staff session expired. Sign in again.");setLoading(false);return}
    if(detail.error||!detail.data){setMessage(detail.error?.message||"Unable to load order checkout details.");setLoading(false);return}
@@ -40,25 +42,31 @@ export default function OrderDetailsPage(){
    const normalized={...raw,subtotal:Number(raw.subtotal),discount:Number(raw.discount),total:Number(raw.total),amount_paid:Number(raw.amount_paid)} as Order;
    setOrder(normalized);
    setItems((detail.data.items??[]).map((x:any)=>({...x,quantity:Number(x.quantity),unit_price:Number(x.unit_price),line_total:Number(x.line_total)})));
+   setProducts((detail.data.product_items??[]).map((x:any)=>({...x,quantity:Number(x.quantity),unit_price:Number(x.unit_price),line_total:Number(x.line_total)})));
    setPayments((detail.data.payments??[]).map((x:any)=>({...x,amount:Number(x.amount)})));
+   if(!brand.error)setBranding(brand.data);
    const nextAccess={permissions:ctx.data.permissions??{},branches:ctx.data.branches??[],settings:ctx.data.settings??{}};setAccess(nextAccess);
    const methods=(nextAccess.settings?.payment_methods?.methods as string[]|undefined)?.filter(Boolean)??defaultMethods;
    setPayment(p=>({...p,method:methods[0]??"cash",amount:Math.max(normalized.total-normalized.amount_paid,0).toFixed(2)}));
    setLoading(false);return
   }
 
-  const [a,o,i,p,g]=await Promise.all([
+  const [a,o,i,p,g,productResult,brand]=await Promise.all([
    supabase.rpc("get_current_access_context"),
    supabase.from("laundry_orders").select("id,order_code,branch_id,customer_id,status,payment_status,subtotal,discount,total,amount_paid,notes,created_at,customers(full_name,customer_code),branches(id,name,code,address,phone)").eq("id",orderId).maybeSingle(),
    supabase.from("laundry_order_items").select("id,service_id,quantity,unit_price,line_total,notes,services(name,pricing_unit)").eq("order_id",orderId).order("created_at"),
    supabase.from("payments").select("id,amount,method,reference,created_at").eq("order_id",orderId).order("created_at"),
-   supabase.rpc("get_organization_payment_account",{p_payment_method:"gcash"})
+   supabase.rpc("get_organization_payment_account",{p_payment_method:"gcash"}),
+   supabase.rpc("get_order_product_items",{p_order_id:orderId}),
+   supabase.rpc("get_receipt_branding",{p_order_id:orderId,p_staff_token:null})
   ]);
   if(a.error||o.error||!o.data||i.error||p.error){setMessage(a.error?.message||o.error?.message||i.error?.message||p.error?.message||"Order not found.");setLoading(false);return}
   const raw=o.data as any;
   const normalized={...raw,subtotal:Number(raw.subtotal),discount:Number(raw.discount),total:Number(raw.total),amount_paid:Number(raw.amount_paid),branch:Array.isArray(raw.branches)?raw.branches[0]??null:raw.branches??null} as Order;
   setOrder(normalized);setAccess(a.data??{});if(!g.error)setGcash(g.data??null);
+  if(!brand.error)setBranding(brand.data);
   setItems((i.data??[]).map((x:any)=>({...x,service_name:Array.isArray(x.services)?x.services[0]?.name??"Service":x.services?.name??"Service",pricing_unit:Array.isArray(x.services)?x.services[0]?.pricing_unit??"":x.services?.pricing_unit??"",quantity:Number(x.quantity),unit_price:Number(x.unit_price),line_total:Number(x.line_total)})));
+  setProducts((productResult.error?[]:productResult.data??[]).map((x:any)=>({...x,quantity:Number(x.quantity),unit_price:Number(x.unit_price),line_total:Number(x.line_total)})));
   setPayments((p.data??[]).map((x:any)=>({...x,amount:Number(x.amount)})));
   const methods=((a.data?.settings?.payment_methods?.methods as string[]|undefined)?.filter(Boolean)??defaultMethods);
   setPayment(x=>({...x,method:methods[0]??"cash",amount:Math.max(normalized.total-normalized.amount_paid,0).toFixed(2)}));setLoading(false)
@@ -78,8 +86,14 @@ export default function OrderDetailsPage(){
   const {error}=await supabase.rpc("record_order_payment",{p_order_id:order.id,p_amount:amount,p_method:payment.method,p_reference:payment.reference||null});if(error)return setMessage(error.message);setMessage("Payment recorded.");await load()
  }
 
- function printReceipt(format:"standard"|"58mm"="standard"){
+ async function printReceipt(format:"standard"|"58mm"="standard"){
   if(!order)return;
+  if(printing)return;
+  const settings=loadPrinterSettings();
+  if(format==="58mm"&&settings.connectionMode==="web_bluetooth"){
+   try{setPrinting(true);setMessage("Printing receipt…");const printer=await printBluetoothReceipt({business:branding?.organization_name||"LabaFlow",branch:branding?.branch_name||branchName,address:branding?.branch_address||branding?.business_address||order.branch?.address||undefined,phone:branding?.branch_phone||branding?.business_phone||order.branch?.phone||undefined,orderCode:order.order_code,createdAt:order.created_at,customer:order.customers?.full_name??"Walk-in Customer",customerCode:order.customers?.customer_code,status:label(order.status),paymentStatus:paid?"Paid":label(order.payment_status),items:items.map(i=>({name:i.service_name||"Service",quantity:i.quantity,unitPrice:i.unit_price,lineTotal:i.line_total})),products:products.map(i=>({name:i.product_name||i.name||"Product",quantity:i.quantity,unitPrice:i.unit_price,lineTotal:i.line_total})),subtotal:order.subtotal,discount:order.discount,total:order.total,amountPaid:order.amount_paid,balance,payments:payments.map(p=>({createdAt:p.created_at,method:label(p.method),amount:p.amount,reference:p.reference})),notes:order.notes,footer:branding?.receipt_footer||`Thank you for choosing ${branding?.organization_name||"LabaFlow"}.`});setMessage(`Receipt sent to ${printer}.`)}catch(e:any){setMessage(`${e?.message||"Unable to print the receipt."} Open Printer Settings to reconnect the Bluetooth printer.`)}finally{setPrinting(false)}
+   return;
+  }
   const itemRows=items.map(i=>`<tr><td>${esc(i.service_name)}${i.notes?`<small>${esc(i.notes)}</small>`:""}</td><td class="num">${esc(fmtQty(i.quantity))}</td><td class="num">${esc(peso.format(i.unit_price))}</td><td class="num">${esc(peso.format(i.line_total))}</td></tr>`).join("");
   const paymentRows=payments.length?payments.map(p=>`<tr><td>${esc(new Date(p.created_at).toLocaleString())}</td><td>${esc(label(p.method))}${p.reference?`<small>Ref: ${esc(p.reference)}</small>`:""}</td><td class="num">${esc(peso.format(p.amount))}</td></tr>`).join(""):`<tr><td colspan="3">No payment recorded yet.</td></tr>`;
   const win=window.open("","_blank",format==="58mm"?"width=360,height=900":"width=760,height=900");if(!win)return setMessage("Please allow pop-ups to print the receipt.");
