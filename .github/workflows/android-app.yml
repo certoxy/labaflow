@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - develop
+      - main
     paths:
       - "mobile/**"
       - "lib/printerSettings.ts"
@@ -44,7 +45,7 @@ jobs:
         run: npm ci
       - name: Select LabaFlow environment
         run: |
-          if [ "${{ inputs.environment || 'staging' }}" = "production" ]; then
+          if [ "${{ github.ref_name }}" = "main" ] || [ "${{ inputs.environment || 'staging' }}" = "production" ]; then
             echo "LABAFLOW_APP_URL=https://labaflow.paotechs.com" >> "$GITHUB_ENV"
           else
             echo "LABAFLOW_APP_URL=https://staging.labaflow.paotechs.com" >> "$GITHUB_ENV"
@@ -56,14 +57,22 @@ jobs:
         working-directory: mobile/android
       - uses: actions/upload-artifact@v4
         with:
-          name: labaflow-${{ inputs.environment || 'staging' }}-debug-apk
+          name: labaflow-android-debug-apk
           path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
       - name: Publish staging APK download
-        if: github.event_name == 'push' || inputs.environment == 'staging'
+        if: (github.event_name == 'push' && github.ref_name == 'develop') || (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk LabaFlow-Staging-Android.apk
           gh release view android-staging >/dev/null 2>&1 || gh release create android-staging --target develop --prerelease --title "LabaFlow Android Staging" --notes "Installable Android pilot connected to LabaFlow Staging."
           gh release upload android-staging LabaFlow-Staging-Android.apk --clobber
+      - name: Publish production APK download
+        if: (github.event_name == 'push' && github.ref_name == 'main') || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk LabaFlow-Android.apk
+          gh release view android-production >/dev/null 2>&1 || gh release create android-production --target main --prerelease --title "LabaFlow Android" --notes "Installable Android app connected to live LabaFlow."
+          gh release upload android-production LabaFlow-Android.apk --clobber
