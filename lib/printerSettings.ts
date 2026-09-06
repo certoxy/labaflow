@@ -88,12 +88,17 @@ async function withTimeout<T>(operation:Promise<T>,milliseconds=8000){let timer:
 const base64=(bytes:Uint8Array)=>{let value="";for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value)};
 async function sendToNativePrinter(bytes:Uint8Array){
  const plugin=await initializeNativeBle(),device=await resolvePrinter();let discovered:any;
- try{discovered=await plugin.getServices({deviceId:device.id})}catch{await connectNative(plugin,device.id);discovered=await plugin.getServices({deviceId:device.id})}
- const services=discovered?.services??discovered??[];let target:any=null;
- for(const service of services){const characteristic=(service.characteristics??[]).find((item:any)=>item.properties?.write||item.properties?.writeWithoutResponse);if(characteristic){target={service:service.uuid,characteristic:characteristic.uuid,withResponse:Boolean(characteristic.properties?.write)};break}}
- if(!target)throw new Error("The printer connected, but no supported ESC/POS write channel was found.");
- for(let offset=0;offset<bytes.length;offset+=20){const value=base64(bytes.slice(offset,offset+20)),options={deviceId:device.id,service:target.service,characteristic:target.characteristic,value};if(target.withResponse)await withTimeout(plugin.write(options));else await withTimeout(plugin.writeWithoutResponse(options));await wait(25)}
- return String(device.name||"Bluetooth printer");
+ try{
+  try{discovered=await plugin.getServices({deviceId:device.id})}catch{await connectNative(plugin,device.id);discovered=await plugin.getServices({deviceId:device.id})}
+  const services=discovered?.services??discovered??[];let target:any=null;
+  for(const service of services){const characteristic=(service.characteristics??[]).find((item:any)=>item.properties?.write||item.properties?.writeWithoutResponse);if(characteristic){target={service:service.uuid,characteristic:characteristic.uuid,withResponse:Boolean(characteristic.properties?.write)};break}}
+  if(!target)throw new Error("The printer connected, but no supported ESC/POS write channel was found.");
+  for(let offset=0;offset<bytes.length;offset+=20){const value=base64(bytes.slice(offset,offset+20)),options={deviceId:device.id,service:target.service,characteristic:target.characteristic,value};if(target.withResponse)await withTimeout(plugin.write(options));else await withTimeout(plugin.writeWithoutResponse(options));await wait(25)}
+  return String(device.name||"Bluetooth printer");
+ }finally{
+  await wait(150);
+  try{await plugin.disconnect({deviceId:device.id})}catch{}
+ }
 }
 async function sendToPrinter(bytes:Uint8Array){
  if(nativeBle())return sendToNativePrinter(bytes);
