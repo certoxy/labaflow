@@ -1,6 +1,6 @@
 "use client";
 import {useEffect,useState} from "react";
-import {chooseBluetoothPrinter,loadPrinterSettings,printBluetoothTest,savePrinterSettings,supportsWebBluetooth,type PrinterSettings} from "../../../lib/printerSettings";
+import {chooseBluetoothPrinter,isNativeAndroidApp,loadPrinterSettings,printBluetoothTest,savePrinterSettings,supportsWebBluetooth,type PrinterSettings} from "../../../lib/printerSettings";
 import "./printer.css";
 
 function testPrint(format:"standard"|"58mm"){
@@ -11,7 +11,7 @@ function testPrint(format:"standard"|"58mm"){
 
 export default function PrinterSettingsPage(){
  const [settings,setSettings]=useState<PrinterSettings>(()=>loadPrinterSettings()),[message,setMessage]=useState(""),[busy,setBusy]=useState(false),[bluetooth,setBluetooth]=useState(false),[platform,setPlatform]=useState("this device");
- useEffect(()=>{setBluetooth(supportsWebBluetooth());const ua=navigator.userAgent;setPlatform(/Android/i.test(ua)?"Android":/iPhone|iPad|iPod/i.test(ua)?"iPhone / iPad":"Desktop")},[]);
+ useEffect(()=>{setBluetooth(supportsWebBluetooth());const ua=navigator.userAgent;setPlatform(isNativeAndroidApp()?"LabaFlow Android App":/Android/i.test(ua)?"Android":/iPhone|iPad|iPod/i.test(ua)?"iPhone / iPad":"Desktop")},[]);
  function update(next:Partial<PrinterSettings>){const value={...settings,...next};setSettings(value);savePrinterSettings(value);setMessage("Printer preference saved on this device.")}
  async function connect(){setBusy(true);setMessage("Opening Bluetooth device selection…");try{const device=await chooseBluetoothPrinter();update({connectionMode:"web_bluetooth",deviceId:device.id,deviceName:device.name});setMessage(`${device.name} detected${device.connected?" and connected":""}. Use Test Print to confirm browser printing.`)}catch(e:any){setMessage(e?.name==="NotFoundError"?"No printer was selected.":e?.message||"Unable to detect a Bluetooth printer.")}finally{setBusy(false)}}
  async function runTest(){setBusy(true);try{if(settings.connectionMode==="web_bluetooth"){const name=await printBluetoothTest();setMessage(`Test receipt sent directly to ${name}.`)}else{testPrint(settings.defaultFormat);setMessage("System print opened. Choose PrinterApp or its installed printer service.")}}catch(e:any){setMessage(e?.message||"Unable to print the test receipt.")}finally{setBusy(false)}}

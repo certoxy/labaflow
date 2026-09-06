@@ -10,18 +10,24 @@ const defaults:PrinterSettings={defaultFormat:"58mm",connectionMode:"system",dev
 const printerServices=["0000ffe0-0000-1000-8000-00805f9b34fb","000018f0-0000-1000-8000-00805f9b34fb","49535343-fe7d-4ae5-8fa9-9fafd205e455","6e400001-b5a3-f393-e0a9-e50e24dcca9e"];
 let activeDevice:any=null;
 let activePrint:Promise<string>|null=null;
+const nativeBle=()=>typeof window!=="undefined"?(window as any).Capacitor?.Plugins?.BluetoothLe:null;
+export const isNativeAndroidApp=()=>typeof window!=="undefined"&&Boolean((window as any).Capacitor?.isNativePlatform?.()||nativeBle());
 
 export function loadPrinterSettings():PrinterSettings{
  if(typeof window==="undefined")return defaults;
  try{return {...defaults,...JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")}}catch{return defaults}
 }
 export function savePrinterSettings(settings:PrinterSettings){localStorage.setItem(STORAGE_KEY,JSON.stringify(settings));window.dispatchEvent(new CustomEvent("labaflow:printer-settings",{detail:settings}))}
-export function supportsWebBluetooth(){return typeof navigator!=="undefined"&&Boolean((navigator as any).bluetooth?.requestDevice)}
+export function supportsWebBluetooth(){return Boolean(nativeBle())||(typeof navigator!=="undefined"&&Boolean((navigator as any).bluetooth?.requestDevice))}
+async function initializeNativeBle(){const plugin=nativeBle();if(!plugin)throw new Error("Native Bluetooth is unavailable.");await plugin.initialize();return plugin}
+async function connectNative(plugin:any,deviceId:string){try{await plugin.connect({deviceId})}catch{try{await plugin.disconnect({deviceId})}catch{}await plugin.connect({deviceId})}}
+async function requestNativePrinter(){const plugin=await initializeNativeBle(),device=await plugin.requestDevice({optionalServices:printerServices});activeDevice={id:String(device.deviceId||""),name:String(device.name||"Bluetooth printer"),native:true};await connectNative(plugin,activeDevice.id);return activeDevice}
 async function requestBluetoothPrinter(){
  const bluetooth=(navigator as any).bluetooth;if(!bluetooth?.requestDevice)throw new Error("Bluetooth printer discovery is not supported by this browser.");
  const device=await bluetooth.requestDevice({acceptAllDevices:true,optionalServices:printerServices});activeDevice=device;return device;
 }
 export async function chooseBluetoothPrinter(){
+ if(nativeBle()){const device=await requestNativePrinter();return {id:device.id,name:device.name,connected:true}}
  const device=await requestBluetoothPrinter();let connected=false;
  if(device.gatt){try{await device.gatt.connect();connected=Boolean(device.gatt.connected)}catch{connected=false}}
  return {id:String(device.id||""),name:String(device.name||"Bluetooth printer"),connected};
@@ -30,8 +36,9 @@ export async function chooseBluetoothPrinter(){
 async function resolvePrinter(){
  const saved=loadPrinterSettings();if(activeDevice?.id===saved.deviceId)return activeDevice;
  if(activeDevice&&activeDevice.id!==saved.deviceId)activeDevice=null;
+ if(nativeBle()&&saved.deviceId){const plugin=await initializeNativeBle();await connectNative(plugin,saved.deviceId);activeDevice={id:saved.deviceId,name:saved.deviceName||"Bluetooth printer",native:true};return activeDevice}
  if(!activeDevice){
-  try{const device=await requestBluetoothPrinter();savePrinterSettings({...saved,deviceId:String(device.id||""),deviceName:String(device.name||"Bluetooth printer")})}
+  try{const device=nativeBle()?await requestNativePrinter():await requestBluetoothPrinter();savePrinterSettings({...saved,deviceId:String(device.id||""),deviceName:String(device.name||"Bluetooth printer")})}
   catch(error:any){if(error?.name==="NotFoundError")throw new Error("No printer was selected. Tap Print 58mm and select the Bluetooth printer to continue.");throw error}
  }
  return activeDevice;
@@ -78,7 +85,18 @@ function actualReceiptBytes(receipt:BluetoothReceipt){
 
 const wait=(milliseconds:number)=>new Promise(resolve=>setTimeout(resolve,milliseconds));
 async function withTimeout<T>(operation:Promise<T>,milliseconds=8000){let timer:ReturnType<typeof setTimeout>|undefined;try{return await Promise.race([operation,new Promise<T>((_,reject)=>{timer=setTimeout(()=>reject(new Error("The printer stopped responding. Reconnect it in Printer Settings, then try again.")),milliseconds)})])}finally{if(timer)clearTimeout(timer)}}
+const base64=(bytes:Uint8Array)=>{let value="";for(const byte of bytes)value+=String.fromCharCode(byte);return btoa(value)};
+async function sendToNativePrinter(bytes:Uint8Array){
+ const plugin=await initializeNativeBle(),device=await resolvePrinter();let discovered:any;
+ try{discovered=await plugin.getServices({deviceId:device.id})}catch{await connectNative(plugin,device.id);discovered=await plugin.getServices({deviceId:device.id})}
+ const services=discovered?.services??discovered??[];let target:any=null;
+ for(const service of services){const characteristic=(service.characteristics??[]).find((item:any)=>item.properties?.write||item.properties?.writeWithoutResponse);if(characteristic){target={service:service.uuid,characteristic:characteristic.uuid,withResponse:Boolean(characteristic.properties?.write)};break}}
+ if(!target)throw new Error("The printer connected, but no supported ESC/POS write channel was found.");
+ for(let offset=0;offset<bytes.length;offset+=20){const value=base64(bytes.slice(offset,offset+20)),options={deviceId:device.id,service:target.service,characteristic:target.characteristic,value};if(target.withResponse)await withTimeout(plugin.write(options));else await withTimeout(plugin.writeWithoutResponse(options));await wait(25)}
+ return String(device.name||"Bluetooth printer");
+}
 async function sendToPrinter(bytes:Uint8Array){
+ if(nativeBle())return sendToNativePrinter(bytes);
  const device=await resolvePrinter(),characteristic=await writableCharacteristic(device),chunkSize=20;
  for(let offset=0;offset<bytes.length;offset+=chunkSize){
   const chunk=bytes.slice(offset,offset+chunkSize);
