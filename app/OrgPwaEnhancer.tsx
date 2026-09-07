@@ -3,12 +3,18 @@ import {useEffect,useMemo,useState} from "react";
 
 type InstallPromptEvent=Event&{prompt:()=>Promise<void>;userChoice:Promise<{outcome:"accepted"|"dismissed";platform:string}>};
 
+const isNativeApp=()=>typeof window!=="undefined"&&Boolean(
+ (window as any).Capacitor?.isNativePlatform?.()||
+ ((window as any).Capacitor?.getPlatform?.()&&((window as any).Capacitor.getPlatform()!=="web"))||
+ (window as any).Capacitor?.Plugins?.BluetoothLe
+);
+
 export default function OrgPwaEnhancer(){
  const [deferred,setDeferred]=useState<InstallPromptEvent|null>(null),[showHelp,setShowHelp]=useState(false),[installed,setInstalled]=useState(false),[eligible,setEligible]=useState(false),[dismissed,setDismissed]=useState(false);
  const standalone=useMemo(()=>typeof window!=="undefined"&&(window.matchMedia?.("(display-mode: standalone)").matches||(navigator as any).standalone===true),[]);
  useEffect(()=>{
   const path=location.pathname;
-  const allowed=!path.startsWith("/customer")&&!path.startsWith("/receipt");
+  const allowed=!isNativeApp()&&!path.startsWith("/customer")&&!path.startsWith("/receipt");
   setEligible(allowed);
   if(!allowed)return;
   const manifest=document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
