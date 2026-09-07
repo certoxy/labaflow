@@ -1,0 +1,24 @@
+def requiredSigningValue = { String name ->
+    def value = System.getenv(name)
+    if (value == null || value.trim().isEmpty()) {
+        throw new GradleException("Missing required Play signing value: ${name}")
+    }
+    return value
+}
+
+android {
+    signingConfigs {
+        playRelease {
+            storeFile file(requiredSigningValue("ANDROID_KEYSTORE_PATH"))
+            storePassword requiredSigningValue("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias requiredSigningValue("ANDROID_KEY_ALIAS")
+            keyPassword requiredSigningValue("ANDROID_KEY_PASSWORD")
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.playRelease
+        }
+    }
+}
