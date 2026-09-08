@@ -9,7 +9,9 @@ type Branding={organization_name:string;organization_logo_url:string|null};
 export default function CustomerBrandHeaderEnhancer(){
  const [host,setHost]=useState<HTMLElement|null>(null),[branding,setBranding]=useState<Branding|null>(null);
  useEffect(()=>{
-  if(location.pathname!=="/customer")return;
+  // The customer dashboard now owns its organization selector and identity.
+  // Avoid injecting a second header that can compete with workspace switching.
+  if(location.pathname.startsWith("/customer"))return;
   let mounted=true;const token=localStorage.getItem("labaflow_customer_access");if(token)supabase.rpc("get_customer_branding",{p_access_token:token}).then(({data})=>{if(mounted&&data)setBranding(data)});return()=>{mounted=false};
  },[]);
  useEffect(()=>{if(!branding)return;let mounted=true;const attach=()=>{const header=document.querySelector<HTMLElement>(".customerAppHeader");if(!header)return;let node=header.querySelector<HTMLElement>(".customerBrandHeaderHost");if(!node){node=document.createElement("div");node.className="customerBrandHeaderHost";header.prepend(node)}if(mounted)setHost(node)};attach();const observer=new MutationObserver(attach);observer.observe(document.body,{childList:true,subtree:true});return()=>{mounted=false;observer.disconnect()}},[branding]);
