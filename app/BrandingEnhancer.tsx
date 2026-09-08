@@ -61,6 +61,6 @@ export default function BrandingEnhancer(){
 
  return <><footer className="labaflowPoweredFooter" data-labaflow-powered>
   <img src="/labaflow-icon.svg" alt="LabaFlow" data-labaflow-powered/>
-  <span>Powered by <a href="https://labaflow.paotechs.com" target="_blank" rel="noreferrer">LabaFlow</a> · labaflow.paotechs.com · © 2026 PAO Technologies. All rights reserved.</span>
+  <span>Powered by <a href="https://labaflow.paotechs.com" target="_blank" rel="noreferrer">LabaFlow</a> · labaflow.paotechs.com · © 2026 PAO Technologies. All rights reserved. <span className="legalFooterLinks"><a href="/privacy">Privacy</a> · <a href="/account-deletion">Delete account</a></span></span>
  </footer>{showCustomerEntry&&<button type="button" className="customerEntryButton" onClick={()=>location.href="/customer/login"}>My LabaFlow Customer →</button>}</>;
 }
