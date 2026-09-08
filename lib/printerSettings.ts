@@ -12,6 +12,7 @@ let activeDevice:any=null;
 let activePrint:Promise<string>|null=null;
 const nativeBle=()=>typeof window!=="undefined"?(window as any).Capacitor?.Plugins?.BluetoothLe:null;
 export const isNativeAndroidApp=()=>typeof window!=="undefined"&&Boolean((window as any).Capacitor?.isNativePlatform?.()||nativeBle());
+export const isAppleDevice=()=>typeof navigator!=="undefined"&&(/iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1));
 
 export function loadPrinterSettings():PrinterSettings{
  if(typeof window==="undefined")return defaults;
