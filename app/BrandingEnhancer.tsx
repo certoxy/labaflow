@@ -12,7 +12,9 @@ function preferredName(b:Branding){return b?.branch_name||b?.organization_name||
 
 export default function BrandingEnhancer(){
  const [branding,setBranding]=useState<Branding>(null);
+ const [showCustomerEntry,setShowCustomerEntry]=useState(false);
  useEffect(()=>{
+  setShowCustomerEntry(location.pathname==="/");
   let mounted=true;
   async function resolve(){
    try{
@@ -57,8 +59,8 @@ export default function BrandingEnhancer(){
   return()=>observer.disconnect();
  },[branding]);
 
- return <footer className="labaflowPoweredFooter" data-labaflow-powered>
+ return <><footer className="labaflowPoweredFooter" data-labaflow-powered>
   <img src="/labaflow-icon.svg" alt="LabaFlow" data-labaflow-powered/>
   <span>Powered by <a href="https://labaflow.paotechs.com" target="_blank" rel="noreferrer">LabaFlow</a> · labaflow.paotechs.com · © 2026 PAO Technologies. All rights reserved.</span>
- </footer>;
+ </footer>{showCustomerEntry&&<button type="button" className="customerEntryButton" onClick={()=>location.href="/customer/login"}>My LabaFlow Customer →</button>}</>;
 }
