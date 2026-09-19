@@ -45,9 +45,11 @@ export default function ReceiptEnhancer(){
      if(!html.includes("Laundry Service Receipt")){originalWrite(html);return}
 
      const points=loyaltyRef.current;
-     const loyaltyText=points==null?"Not available":`${points.toLocaleString()} points`;
-     const loyaltyRow=`<div class="loyaltyMeta"><span>Loyalty Points</span><strong>${esc(loyaltyText)}</strong></div>`;
-     html=html.replace(/(<div><span>Payment<\/span><strong>.*?<\/strong><\/div>)/s,`$1${loyaltyRow}`);
+     if(!html.includes("data-loyalty-summary")){
+      const loyaltyText=points==null?"Not available":`${points.toLocaleString()} points`;
+      const loyaltyRow=`<div class="loyaltyMeta"><span>Total Customer Points</span><strong>${esc(loyaltyText)}</strong></div>`;
+      html=html.replace(/(<div><span>Payment<\/span><strong>.*?<\/strong><\/div>)/s,`$1${loyaltyRow}`);
+     }
 
      html=html.replace("<header><h1>LabaFlow</h1>",`<div class="receiptActions noPrint"><button onclick="downloadPdf()">↓ Download PDF</button><button onclick="shareReceipt()">↗ Share Image</button><button onclick="window.print()">🖨 Print</button></div><header><img class="receiptLogo" src="/labaflow-icon.svg" alt="LabaFlow"><h1>LabaFlow</h1>`);
 

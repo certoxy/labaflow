@@ -3,7 +3,7 @@ export type PrinterConnectionMode="system"|"web_bluetooth";
 export type PrinterSettings={defaultFormat:ReceiptPrintFormat;connectionMode:PrinterConnectionMode;deviceId:string|null;deviceName:string|null};
 export type BluetoothReceiptLine={name:string;quantity:number|string;unitPrice:number;lineTotal:number};
 export type BluetoothReceiptPayment={createdAt:string;method:string;amount:number;reference?:string|null};
-export type BluetoothReceipt={business:string;branch?:string;address?:string;phone?:string;orderCode:string;createdAt:string;customer:string;customerCode?:string;status:string;paymentStatus:string;items:BluetoothReceiptLine[];products?:BluetoothReceiptLine[];subtotal:number;discount:number;total:number;amountPaid:number;balance:number;payments:BluetoothReceiptPayment[];notes?:string|null;footer?:string};
+export type BluetoothReceipt={business:string;branch?:string;address?:string;phone?:string;orderCode:string;createdAt:string;customer:string;customerCode?:string;status:string;paymentStatus:string;items:BluetoothReceiptLine[];products?:BluetoothReceiptLine[];subtotal:number;discount:number;total:number;amountPaid:number;balance:number;loyalty?:{balance:number;earned:number;used:number};payments:BluetoothReceiptPayment[];notes?:string|null;footer?:string};
 
 const STORAGE_KEY="labaflow.printer.settings.v1";
 const defaults:PrinterSettings={defaultFormat:"58mm",connectionMode:"system",deviceId:null,deviceName:null};
@@ -72,7 +72,9 @@ function actualReceiptBytes(receipt:BluetoothReceipt){
  if(receipt.address)lines.push(...wrapped(receipt.address).map(center));if(receipt.phone)lines.push(center(receipt.phone));
  lines.push(center("Laundry Service Receipt"),rule,pair("Order",receipt.orderCode),pair("Date",new Date(receipt.createdAt).toLocaleString()),pair("Customer",receipt.customer));
  if(receipt.customerCode)lines.push(pair("Customer Code",receipt.customerCode));
- lines.push(pair("Status",receipt.status),pair("Payment",receipt.paymentStatus),rule,...lineItems("Services",receipt.items));
+ lines.push(pair("Status",receipt.status),pair("Payment",receipt.paymentStatus));
+ if(receipt.loyalty)lines.push(pair("Points Earned",`+${receipt.loyalty.earned}`),pair("Points Used",`-${receipt.loyalty.used}`),pair("Total Customer Points",receipt.loyalty.balance));
+ lines.push(rule,...lineItems("Services",receipt.items));
  if(receipt.products?.length)lines.push(rule,...lineItems("Products",receipt.products));
  lines.push(rule,pair("Subtotal",money(receipt.subtotal)));
  if(receipt.discount>0)lines.push(pair("Discount",`-${money(receipt.discount)}`));
