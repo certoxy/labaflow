@@ -1,0 +1,22 @@
+.customerSummaryCard {
+  width: 100%;
+  color: inherit;
+  text-align: left;
+  transition: border-color .18s, box-shadow .18s, transform .18s;
+}
+
+.customerSummaryCard:hover {
+  border-color: #79cada;
+  box-shadow: 0 10px 28px rgba(20, 143, 174, .12);
+  transform: translateY(-1px);
+}
+
+.customerSummaryCard.selected {
+  border-color: #128fae;
+  box-shadow: 0 0 0 3px rgba(18, 143, 174, .12), 0 10px 28px rgba(20, 143, 174, .12);
+}
+
+.customerSummaryCard.selected .summaryIcon {
+  background: #128fae;
+  color: #fff;
+}
