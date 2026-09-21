@@ -1,29 +1,579 @@
 "use client";
-import {FormEvent,useEffect,useMemo,useState} from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import {supabase} from "../../lib/supabase";
-import {cacheReference,getReference} from "../../lib/offlineQueue";
-import {currentOfflineScope} from "../../lib/offlineScope";
-import {getStoredLocalStaffSession,getLocalStaffOperationalContext} from "../../lib/localStaff";
-type Branch={id:string;name:string};
-type Customer={id:string;customer_code:string;full_name:string;mobile:string|null;email:string|null;preferred_branch_id:string|null;loyalty_points:number;lifetime_points:number;lifetime_visits:number;lifetime_spend:number};
-type Level={id:string;name:string;minimum_points:number;active:boolean};
-type QrState={customer:Customer;image:string}|null;
-const peso=new Intl.NumberFormat("en-PH",{style:"currency",currency:"PHP"}),CACHE="customers-page-v1";
-export default function CustomersPage(){
- const [customers,setCustomers]=useState<Customer[]>([]),[branches,setBranches]=useState<Branch[]>([]),[levels,setLevels]=useState<Level[]>([]),[message,setMessage]=useState(""),[search,setSearch]=useState(""),[levelFilter,setLevelFilter]=useState("all"),[branchFilter,setBranchFilter]=useState("all"),[online,setOnline]=useState(true),[canCreate,setCanCreate]=useState(true),[localMode,setLocalMode]=useState(false);
- const [qr,setQr]=useState<QrState>(null),[editing,setEditing]=useState<Customer|null>(null),[profile,setProfile]=useState({full_name:"",mobile:"",email:"",preferred_branch_id:""});
- useEffect(()=>{setOnline(navigator.onLine);setLocalMode(Boolean(getStoredLocalStaffSession()));load();const on=()=>{setOnline(true);setTimeout(()=>load(),400)},off=()=>setOnline(false),created=()=>setTimeout(()=>load(),150);window.addEventListener("online",on);window.addEventListener("offline",off);window.addEventListener("labaflow:customer-created",created);return()=>{window.removeEventListener("online",on);window.removeEventListener("offline",off);window.removeEventListener("labaflow:customer-created",created)}},[]);
- async function load(){const local=getStoredLocalStaffSession(),scope=await currentOfflineScope();setLocalMode(Boolean(local));if(!scope){setMessage("Unable to identify the current workspace.");return}if(!navigator.onLine){const c=await getReference<{customers:Customer[];branches:Branch[];levels:Level[]}>(CACHE,scope);if(c){setCustomers(c.customers);setBranches(c.branches);setLevels(c.levels);setMessage(local?"Offline local-staff customer creation is not enabled yet. You can search cached customers.":"Offline mode: searching this organization's synchronized customer directory.")}else setMessage("No offline customer cache is available for this organization yet.");return}setMessage("");if(local){const r=await getLocalStaffOperationalContext();if(r.error||!r.data){setMessage(r.error?.message||"Staff session expired. Sign in again.");return}const bs=r.data.branches??[],cs=(r.data.customers??[]).map((x:any)=>({...x,loyalty_points:Number(x.loyalty_points??0),lifetime_points:Number(x.lifetime_points??0),lifetime_visits:Number(x.lifetime_visits??0),lifetime_spend:Number(x.lifetime_spend??0)})),ls=(r.data.loyalty_levels??[]).map((x:any)=>({...x,minimum_points:Number(x.minimum_points??0)}));setCanCreate(Boolean(r.data.permissions?.manage_customers));setBranches(bs);setCustomers(cs);setLevels(ls);await cacheReference(CACHE,{customers:cs,branches:bs,levels:ls},scope);return}const [a,c,l]=await Promise.all([supabase.rpc("get_current_access_context"),supabase.from("customers").select("id,customer_code,full_name,mobile,email,preferred_branch_id,loyalty_points,lifetime_points,lifetime_visits,lifetime_spend").eq("active",true).order("full_name"),supabase.from("loyalty_levels").select("id,name,minimum_points,active").eq("active",true).order("minimum_points")]);if(a.error||c.error||l.error){setMessage(a.error?.message||c.error?.message||l.error?.message||"Unable to load customers");return}const bs=(a.data?.branches??[]) as Branch[],cs=(c.data??[]).map((x:any)=>({...x,loyalty_points:Number(x.loyalty_points??0),lifetime_points:Number(x.lifetime_points??0),lifetime_visits:Number(x.lifetime_visits??0),lifetime_spend:Number(x.lifetime_spend??0)})),ls=(l.data??[]).map((x:any)=>({...x,minimum_points:Number(x.minimum_points??0)}));setBranches(bs);setCustomers(cs);setLevels(ls);await cacheReference(CACHE,{customers:cs,branches:bs,levels:ls},scope)}
- function levelFor(points:number){return [...levels].filter(l=>l.active&&l.minimum_points<=points).sort((a,b)=>b.minimum_points-a.minimum_points)[0]?.name??"Member"}
- const filtered=useMemo(()=>{const q=search.trim().toLowerCase();return customers.filter(c=>(!q||`${c.full_name} ${c.customer_code} ${c.mobile??""} ${c.email??""}`.toLowerCase().includes(q))&&(levelFilter==="all"||levelFor(c.lifetime_points)===levelFilter)&&(branchFilter==="all"||(branchFilter==="unassigned"?!c.preferred_branch_id:c.preferred_branch_id===branchFilter)))},[customers,search,levelFilter,branchFilter,levels]);
- const branchCounts=branches.map(b=>({...b,count:customers.filter(c=>c.preferred_branch_id===b.id).length}));
- const unassignedCount=customers.filter(c=>!c.preferred_branch_id).length;
- const branchName=(id:string|null)=>id?branches.find(b=>b.id===id)?.name??"Unknown branch":"No branch assigned";
- async function showQr(c:Customer){if(!online)return setMessage("Reconnect to generate a customer QR code.");const {data,error}=await supabase.rpc("get_customer_qr",{p_customer_id:c.id});if(error){setMessage(error.message);return}const image=await QRCode.toDataURL(`labaflow:${data.qr_token}`,{width:360,margin:2});setQr({customer:c,image})}
- function openEdit(c:Customer){setEditing(c);setProfile({full_name:c.full_name,mobile:c.mobile??"",email:c.email??"",preferred_branch_id:c.preferred_branch_id??""})}
- async function saveProfile(e:FormEvent){e.preventDefault();if(!editing)return;if(localMode)return setMessage("Customer editing for local staff will be enabled in the next backend update. Please use an Organization Admin account for now.");const {error}=await supabase.rpc("update_customer_profile",{p_customer_id:editing.id,p_full_name:profile.full_name,p_mobile:profile.mobile||null,p_email:profile.email||null,p_preferred_branch_id:profile.preferred_branch_id||null});if(error){setMessage(error.message);return}setMessage("Customer details updated.");setEditing(null);await load()}
- return <main className="workspace customerDirectoryPage"><header className="customerDirectoryHeader"><div><p className="eyebrow">CUSTOMERS</p><h1>Customer Directory</h1><p className="muted">Search customers, generate QR cards, and maintain customer details.</p></div>{canCreate&&<div className="headerActions"><button className="primary" onClick={()=>window.dispatchEvent(new Event("labaflow:open-new-customer"))}>+ New Customer</button></div>}</header>{message&&<p className="notice">{message}</p>}<section className="customerSummaryGrid" aria-label="Filter customers by branch"><button type="button" className={`customerSummaryCard ${branchFilter==="all"?"selected":""}`} aria-pressed={branchFilter==="all"} onClick={()=>setBranchFilter("all")}><span className="summaryIcon">◎</span><div><small>ALL BRANCHES</small><strong>{customers.length}</strong><span>Active customers</span></div></button>{branchCounts.map(b=><button type="button" className={`customerSummaryCard ${branchFilter===b.id?"selected":""}`} aria-pressed={branchFilter===b.id} onClick={()=>setBranchFilter(b.id)} key={b.id}><span className="summaryIcon">⌂</span><div><small>{b.name.toUpperCase()}</small><strong>{b.count}</strong><span>{b.count===1?"Customer":"Customers"}</span></div></button>)}{unassignedCount>0&&<button type="button" className={`customerSummaryCard ${branchFilter==="unassigned"?"selected":""}`} aria-pressed={branchFilter==="unassigned"} onClick={()=>setBranchFilter("unassigned")}><span className="summaryIcon">—</span><div><small>NO BRANCH ASSIGNED</small><strong>{unassignedCount}</strong><span>{unassignedCount===1?"Customer":"Customers"}</span></div></button>}</section><section className="panel customerDirectoryPanel"><div className="customerToolbar"><div><h2>Customers ({filtered.length})</h2><span>{customers.length} active customers</span></div><div className="customerFilters"><select aria-label="Filter customers by branch" value={branchFilter} onChange={e=>setBranchFilter(e.target.value)}><option value="all">All Branches</option>{branches.map(b=><option value={b.id} key={b.id}>{b.name}</option>)}{unassignedCount>0&&<option value="unassigned">No Branch Assigned</option>}</select><select value={levelFilter} onChange={e=>setLevelFilter(e.target.value)}><option value="all">All Levels</option>{levels.filter(l=>l.active).map(l=><option value={l.name} key={l.id}>{l.name}</option>)}</select><input placeholder="Search name, code, mobile or email…" value={search} onChange={e=>setSearch(e.target.value)}/></div></div><div className="customerTableWrap"><table className="customerTable"><thead><tr><th>Customer</th><th>Branch</th><th>Loyalty Level</th><th>Available Points</th><th>Cumulative Points</th><th>Visits</th><th>Lifetime Spend</th><th>Actions</th></tr></thead><tbody>{filtered.map(c=><tr key={c.id}><td><div className="customerIdentity"><span className="customerAvatar">{c.full_name.split(/\s+/).filter(Boolean).slice(0,2).map(n=>n[0]?.toUpperCase()).join("")||"C"}</span><div><strong>{c.full_name}</strong><small>{c.customer_code}</small><small>{c.mobile||c.email||"No contact"}</small></div></div></td><td><span className="customerBranchBadge">{branchName(c.preferred_branch_id)}</span></td><td><span className="loyaltyLevelBadge">★ {levelFor(c.lifetime_points)}</span></td><td><strong>{c.loyalty_points.toLocaleString()} pts</strong></td><td><strong>{c.lifetime_points.toLocaleString()} pts</strong></td><td><strong>{c.lifetime_visits.toLocaleString()}</strong></td><td><strong>{peso.format(c.lifetime_spend)}</strong></td><td><div className="customerActions"><button type="button" className="miniBtn" onClick={()=>showQr(c)}>▦ QR</button><button type="button" className="miniBtn" onClick={()=>openEdit(c)}>✎ Edit</button></div></td></tr>)}</tbody></table>{!filtered.length&&<div className="customerEmpty">No customers match the selected filters.</div>}</div></section>{!online&&<p className="muted">Offline data is isolated to the current organization.</p>}
- {qr&&<div className="modalBackdrop"><section className="modal qrModal"><div className="panelHead"><div><p className="eyebrow">CUSTOMER QR</p><h2>{qr.customer.full_name}</h2><span>{qr.customer.customer_code} · {levelFor(qr.customer.lifetime_points)}</span></div><button className="iconBtn" onClick={()=>setQr(null)}>×</button></div><div className="customerCard"><img src={qr.image} alt={`${qr.customer.full_name} QR code`}/><strong>{qr.customer.customer_code}</strong><span>{qr.customer.loyalty_points.toLocaleString()} available points</span></div><div className="qrActions"><button className="primary" onClick={()=>window.print()}>Print Customer QR</button></div></section></div>}
- {editing&&<div className="modalBackdrop"><section className="modal"><div className="panelHead"><div><p className="eyebrow">EDIT CUSTOMER</p><h2>{editing.full_name}</h2><span>{editing.customer_code}</span></div><button className="iconBtn" onClick={()=>setEditing(null)}>×</button></div><form className="gridForm" onSubmit={saveProfile}><label>Full name<input value={profile.full_name} onChange={e=>setProfile({...profile,full_name:e.target.value})} required/></label><label>Mobile<input value={profile.mobile} onChange={e=>setProfile({...profile,mobile:e.target.value})}/></label><label>Email<input type="email" value={profile.email} onChange={e=>setProfile({...profile,email:e.target.value})}/></label><label>Preferred branch<select value={profile.preferred_branch_id} onChange={e=>setProfile({...profile,preferred_branch_id:e.target.value})}><option value="">None</option>{branches.map(b=><option key={b.id} value={b.id}>{b.name}</option>)}</select></label><div className="wide"><button className="primary">Save Customer Details</button></div></form></section></div>}
- </main>}
+import { supabase } from "../../lib/supabase";
+import { cacheReference, getReference } from "../../lib/offlineQueue";
+import { currentOfflineScope } from "../../lib/offlineScope";
+import {
+  getStoredLocalStaffSession,
+  getLocalStaffOperationalContext,
+} from "../../lib/localStaff";
+type Branch = { id: string; name: string };
+type Customer = {
+  id: string;
+  customer_code: string;
+  full_name: string;
+  mobile: string | null;
+  email: string | null;
+  preferred_branch_id: string | null;
+  loyalty_points: number;
+  lifetime_points: number;
+  lifetime_visits: number;
+  lifetime_spend: number;
+  created_at: string;
+};
+type Level = {
+  id: string;
+  name: string;
+  minimum_points: number;
+  active: boolean;
+};
+type QrState = { customer: Customer; image: string } | null;
+const peso = new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+  }),
+  CACHE = "customers-page-v1";
+export default function CustomersPage() {
+  const [customers, setCustomers] = useState<Customer[]>([]),
+    [branches, setBranches] = useState<Branch[]>([]),
+    [levels, setLevels] = useState<Level[]>([]),
+    [message, setMessage] = useState(""),
+    [search, setSearch] = useState(""),
+    [levelFilter, setLevelFilter] = useState("all"),
+    [branchFilter, setBranchFilter] = useState("all"),
+    [online, setOnline] = useState(true),
+    [canCreate, setCanCreate] = useState(true),
+    [localMode, setLocalMode] = useState(false);
+  const [qr, setQr] = useState<QrState>(null),
+    [editing, setEditing] = useState<Customer | null>(null),
+    [profile, setProfile] = useState({
+      full_name: "",
+      mobile: "",
+      email: "",
+      preferred_branch_id: "",
+    });
+  useEffect(() => {
+    setOnline(navigator.onLine);
+    setLocalMode(Boolean(getStoredLocalStaffSession()));
+    load();
+    const on = () => {
+        setOnline(true);
+        setTimeout(() => load(), 400);
+      },
+      off = () => setOnline(false),
+      created = () => setTimeout(() => load(), 150);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    window.addEventListener("labaflow:customer-created", created);
+    return () => {
+      window.removeEventListener("online", on);
+      window.removeEventListener("offline", off);
+      window.removeEventListener("labaflow:customer-created", created);
+    };
+  }, []);
+  async function load() {
+    const local = getStoredLocalStaffSession(),
+      scope = await currentOfflineScope();
+    setLocalMode(Boolean(local));
+    if (!scope) {
+      setMessage("Unable to identify the current workspace.");
+      return;
+    }
+    if (!navigator.onLine) {
+      const c = await getReference<{
+        customers: Customer[];
+        branches: Branch[];
+        levels: Level[];
+      }>(CACHE, scope);
+      if (c) {
+        setCustomers(c.customers);
+        setBranches(c.branches);
+        setLevels(c.levels);
+        setMessage(
+          local
+            ? "Offline local-staff customer creation is not enabled yet. You can search cached customers."
+            : "Offline mode: searching this organization's synchronized customer directory.",
+        );
+      } else
+        setMessage(
+          "No offline customer cache is available for this organization yet.",
+        );
+      return;
+    }
+    setMessage("");
+    if (local) {
+      const r = await getLocalStaffOperationalContext();
+      if (r.error || !r.data) {
+        setMessage(r.error?.message || "Staff session expired. Sign in again.");
+        return;
+      }
+      const bs = r.data.branches ?? [],
+        cs = (r.data.customers ?? []).map((x: any) => ({
+          ...x,
+          loyalty_points: Number(x.loyalty_points ?? 0),
+          lifetime_points: Number(x.lifetime_points ?? 0),
+          lifetime_visits: Number(x.lifetime_visits ?? 0),
+          lifetime_spend: Number(x.lifetime_spend ?? 0),
+        })),
+        ls = (r.data.loyalty_levels ?? []).map((x: any) => ({
+          ...x,
+          minimum_points: Number(x.minimum_points ?? 0),
+        }));
+      setCanCreate(Boolean(r.data.permissions?.manage_customers));
+      setBranches(bs);
+      setCustomers(cs);
+      setLevels(ls);
+      await cacheReference(
+        CACHE,
+        { customers: cs, branches: bs, levels: ls },
+        scope,
+      );
+      return;
+    }
+    const [a, c, l] = await Promise.all([
+      supabase.rpc("get_current_access_context"),
+      supabase
+        .from("customers")
+        .select(
+          "id,customer_code,full_name,mobile,email,preferred_branch_id,loyalty_points,lifetime_points,lifetime_visits,lifetime_spend,created_at",
+        )
+        .eq("active", true)
+        .order("full_name"),
+      supabase
+        .from("loyalty_levels")
+        .select("id,name,minimum_points,active")
+        .eq("active", true)
+        .order("minimum_points"),
+    ]);
+    if (a.error || c.error || l.error) {
+      setMessage(
+        a.error?.message ||
+          c.error?.message ||
+          l.error?.message ||
+          "Unable to load customers",
+      );
+      return;
+    }
+    const bs = (a.data?.branches ?? []) as Branch[],
+      cs = (c.data ?? []).map((x: any) => ({
+        ...x,
+        loyalty_points: Number(x.loyalty_points ?? 0),
+        lifetime_points: Number(x.lifetime_points ?? 0),
+        lifetime_visits: Number(x.lifetime_visits ?? 0),
+        lifetime_spend: Number(x.lifetime_spend ?? 0),
+      })),
+      ls = (l.data ?? []).map((x: any) => ({
+        ...x,
+        minimum_points: Number(x.minimum_points ?? 0),
+      }));
+    setBranches(bs);
+    setCustomers(cs);
+    setLevels(ls);
+    await cacheReference(
+      CACHE,
+      { customers: cs, branches: bs, levels: ls },
+      scope,
+    );
+  }
+  function levelFor(points: number) {
+    return (
+      [...levels]
+        .filter((l) => l.active && l.minimum_points <= points)
+        .sort((a, b) => b.minimum_points - a.minimum_points)[0]?.name ??
+      "Member"
+    );
+  }
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return customers.filter(
+      (c) =>
+        (!q ||
+          `${c.full_name} ${c.customer_code} ${c.mobile ?? ""} ${c.email ?? ""}`
+            .toLowerCase()
+            .includes(q)) &&
+        (levelFilter === "all" ||
+          levelFor(c.lifetime_points) === levelFilter) &&
+        (branchFilter === "all" ||
+          (branchFilter === "unassigned"
+            ? !c.preferred_branch_id
+            : c.preferred_branch_id === branchFilter)),
+    );
+  }, [customers, search, levelFilter, branchFilter, levels]);
+  const branchCounts = branches.map((b) => ({
+    ...b,
+    count: customers.filter((c) => c.preferred_branch_id === b.id).length,
+  }));
+  const unassignedCount = customers.filter(
+    (c) => !c.preferred_branch_id,
+  ).length;
+  const branchName = (id: string | null) =>
+    id
+      ? (branches.find((b) => b.id === id)?.name ?? "Unknown branch")
+      : "No branch assigned";
+  async function showQr(c: Customer) {
+    if (!online) return setMessage("Reconnect to generate a customer QR code.");
+    const { data, error } = await supabase.rpc("get_customer_qr", {
+      p_customer_id: c.id,
+    });
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    const image = await QRCode.toDataURL(`labaflow:${data.qr_token}`, {
+      width: 360,
+      margin: 2,
+    });
+    setQr({ customer: c, image });
+  }
+  function openEdit(c: Customer) {
+    setEditing(c);
+    setProfile({
+      full_name: c.full_name,
+      mobile: c.mobile ?? "",
+      email: c.email ?? "",
+      preferred_branch_id: c.preferred_branch_id ?? "",
+    });
+  }
+  async function saveProfile(e: FormEvent) {
+    e.preventDefault();
+    if (!editing) return;
+    if (localMode)
+      return setMessage(
+        "Customer editing for local staff will be enabled in the next backend update. Please use an Organization Admin account for now.",
+      );
+    const { error } = await supabase.rpc("update_customer_profile", {
+      p_customer_id: editing.id,
+      p_full_name: profile.full_name,
+      p_mobile: profile.mobile || null,
+      p_email: profile.email || null,
+      p_preferred_branch_id: profile.preferred_branch_id || null,
+    });
+    if (error) {
+      setMessage(error.message);
+      return;
+    }
+    setMessage("Customer details updated.");
+    setEditing(null);
+    await load();
+  }
+  return (
+    <main className="workspace customerDirectoryPage">
+      <header className="customerDirectoryHeader">
+        <div>
+          <p className="eyebrow">CUSTOMERS</p>
+          <h1>Customer Directory</h1>
+          <p className="muted">
+            Search customers, generate QR cards, and maintain customer details.
+          </p>
+        </div>
+        {canCreate && (
+          <div className="headerActions">
+            <button
+              className="primary"
+              onClick={() =>
+                window.dispatchEvent(new Event("labaflow:open-new-customer"))
+              }
+            >
+              + New Customer
+            </button>
+          </div>
+        )}
+      </header>
+      {message && <p className="notice">{message}</p>}
+      <section
+        className="customerSummaryGrid"
+        aria-label="Filter customers by branch"
+      >
+        <button
+          type="button"
+          className={`customerSummaryCard ${branchFilter === "all" ? "selected" : ""}`}
+          aria-pressed={branchFilter === "all"}
+          onClick={() => setBranchFilter("all")}
+        >
+          <span className="summaryIcon">◎</span>
+          <div>
+            <small>ALL BRANCHES</small>
+            <strong>{customers.length}</strong>
+            <span>Active customers</span>
+          </div>
+        </button>
+        {branchCounts.map((b) => (
+          <button
+            type="button"
+            className={`customerSummaryCard ${branchFilter === b.id ? "selected" : ""}`}
+            aria-pressed={branchFilter === b.id}
+            onClick={() => setBranchFilter(b.id)}
+            key={b.id}
+          >
+            <span className="summaryIcon">⌂</span>
+            <div>
+              <small>{b.name.toUpperCase()}</small>
+              <strong>{b.count}</strong>
+              <span>{b.count === 1 ? "Customer" : "Customers"}</span>
+            </div>
+          </button>
+        ))}
+        {unassignedCount > 0 && (
+          <button
+            type="button"
+            className={`customerSummaryCard ${branchFilter === "unassigned" ? "selected" : ""}`}
+            aria-pressed={branchFilter === "unassigned"}
+            onClick={() => setBranchFilter("unassigned")}
+          >
+            <span className="summaryIcon">—</span>
+            <div>
+              <small>NO BRANCH ASSIGNED</small>
+              <strong>{unassignedCount}</strong>
+              <span>{unassignedCount === 1 ? "Customer" : "Customers"}</span>
+            </div>
+          </button>
+        )}
+      </section>
+      <section className="panel customerDirectoryPanel">
+        <div className="customerToolbar">
+          <div>
+            <h2>Customers ({filtered.length})</h2>
+            <span>{customers.length} active customers</span>
+          </div>
+          <div className="customerFilters">
+            <select
+              aria-label="Filter customers by branch"
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value)}
+            >
+              <option value="all">All Branches</option>
+              {branches.map((b) => (
+                <option value={b.id} key={b.id}>
+                  {b.name}
+                </option>
+              ))}
+              {unassignedCount > 0 && (
+                <option value="unassigned">No Branch Assigned</option>
+              )}
+            </select>
+            <select
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value)}
+            >
+              <option value="all">All Levels</option>
+              {levels
+                .filter((l) => l.active)
+                .map((l) => (
+                  <option value={l.name} key={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+            </select>
+            <input
+              placeholder="Search name, code, mobile or email…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="customerTableWrap">
+          <table className="customerTable">
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Branch</th>
+                <th>Created Date</th>
+                <th>Loyalty Level</th>
+                <th>Available Points</th>
+                <th>Cumulative Points</th>
+                <th>Visits</th>
+                <th>Lifetime Spend</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((c) => (
+                <tr key={c.id}>
+                  <td>
+                    <div className="customerIdentity">
+                      <span className="customerAvatar">
+                        {c.full_name
+                          .split(/\s+/)
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((n) => n[0]?.toUpperCase())
+                          .join("") || "C"}
+                      </span>
+                      <div>
+                        <strong>{c.full_name}</strong>
+                        <small>{c.customer_code}</small>
+                        <small>{c.mobile || c.email || "No contact"}</small>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span className="customerBranchBadge">
+                      {branchName(c.preferred_branch_id)}
+                    </span>
+                  </td>
+                  <td>
+                    <strong>
+                      {c.created_at
+                        ? new Date(c.created_at).toLocaleDateString("en-PH", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "—"}
+                    </strong>
+                  </td>
+                  <td>
+                    <span className="loyaltyLevelBadge">
+                      ★ {levelFor(c.lifetime_points)}
+                    </span>
+                  </td>
+                  <td>
+                    <strong>{c.loyalty_points.toLocaleString()} pts</strong>
+                  </td>
+                  <td>
+                    <strong>{c.lifetime_points.toLocaleString()} pts</strong>
+                  </td>
+                  <td>
+                    <strong>{c.lifetime_visits.toLocaleString()}</strong>
+                  </td>
+                  <td>
+                    <strong>{peso.format(c.lifetime_spend)}</strong>
+                  </td>
+                  <td>
+                    <div className="customerActions">
+                      <button
+                        type="button"
+                        className="miniBtn"
+                        onClick={() => showQr(c)}
+                      >
+                        ▦ QR
+                      </button>
+                      <button
+                        type="button"
+                        className="miniBtn"
+                        onClick={() => openEdit(c)}
+                      >
+                        ✎ Edit
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!filtered.length && (
+            <div className="customerEmpty">
+              No customers match the selected filters.
+            </div>
+          )}
+        </div>
+      </section>
+      {!online && (
+        <p className="muted">
+          Offline data is isolated to the current organization.
+        </p>
+      )}
+      {qr && (
+        <div className="modalBackdrop">
+          <section className="modal qrModal">
+            <div className="panelHead">
+              <div>
+                <p className="eyebrow">CUSTOMER QR</p>
+                <h2>{qr.customer.full_name}</h2>
+                <span>
+                  {qr.customer.customer_code} ·{" "}
+                  {levelFor(qr.customer.lifetime_points)}
+                </span>
+              </div>
+              <button className="iconBtn" onClick={() => setQr(null)}>
+                ×
+              </button>
+            </div>
+            <div className="customerCard">
+              <img src={qr.image} alt={`${qr.customer.full_name} QR code`} />
+              <strong>{qr.customer.customer_code}</strong>
+              <span>
+                {qr.customer.loyalty_points.toLocaleString()} available points
+              </span>
+            </div>
+            <div className="qrActions">
+              <button className="primary" onClick={() => window.print()}>
+                Print Customer QR
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+      {editing && (
+        <div className="modalBackdrop">
+          <section className="modal">
+            <div className="panelHead">
+              <div>
+                <p className="eyebrow">EDIT CUSTOMER</p>
+                <h2>{editing.full_name}</h2>
+                <span>{editing.customer_code}</span>
+              </div>
+              <button className="iconBtn" onClick={() => setEditing(null)}>
+                ×
+              </button>
+            </div>
+            <form className="gridForm" onSubmit={saveProfile}>
+              <label>
+                Full name
+                <input
+                  value={profile.full_name}
+                  onChange={(e) =>
+                    setProfile({ ...profile, full_name: e.target.value })
+                  }
+                  required
+                />
+              </label>
+              <label>
+                Mobile
+                <input
+                  value={profile.mobile}
+                  onChange={(e) =>
+                    setProfile({ ...profile, mobile: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                Email
+                <input
+                  type="email"
+                  value={profile.email}
+                  onChange={(e) =>
+                    setProfile({ ...profile, email: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                Preferred branch
+                <select
+                  value={profile.preferred_branch_id}
+                  onChange={(e) =>
+                    setProfile({
+                      ...profile,
+                      preferred_branch_id: e.target.value,
+                    })
+                  }
+                >
+                  <option value="">None</option>
+                  {branches.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className="wide">
+                <button className="primary">Save Customer Details</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+    </main>
+  );
+}
