@@ -79,7 +79,7 @@ export default function ReceiptEnhancer(){
          var paymentRows=tables[1]?Array.from(tables[1].querySelectorAll('tbody tr')).map(function(r){var c=r.querySelectorAll('td');return Array.from(c).map(function(x){return x.innerText.trim()})}):[];
          var totalRows=Array.from(document.querySelectorAll('.totals>div')).map(function(d){var s=d.querySelectorAll('span,strong');return [s[0]?.textContent.trim()||'',s[1]?.textContent.trim()||'']});
          var serviceH=96+serviceRows.length*56,totalH=48+totalRows.length*52,paymentH=paymentRows.length?80+paymentRows.length*52:125;
-         var h=300+245+serviceH+totalH+paymentH+125;
+         var h=300+295+serviceH+totalH+paymentH+125;
          canvas.width=w;canvas.height=h;
          var ctx=canvas.getContext('2d');if(!ctx)throw new Error('Canvas unavailable');
          ctx.fillStyle='#edf5f7';ctx.fillRect(0,0,w,h);
@@ -94,7 +94,8 @@ export default function ReceiptEnhancer(){
          metaCell('Order',metaMap.Order||'',leftLabel,leftValue,y);metaCell('Date',metaMap.Date||'',rightLabel,rightValue,y);y+=row;
          metaCell('Customer',metaMap.Customer||'',leftLabel,leftValue,y);metaCell('Status',metaMap.Status||'',rightLabel,rightValue,y);y+=row;
          metaCell('Customer Code',metaMap['Customer Code']||'',leftLabel,leftValue,y);metaCell('Payment',metaMap.Payment||'',rightLabel,rightValue,y);y+=row;
-         metaCell('Loyalty Points',metaMap['Loyalty Points']||'',leftLabel,leftValue,y);
+         metaCell('Beginning Points',metaMap['Beginning Points']||'',leftLabel,leftValue,y);metaCell('Points Earned',metaMap['Points Earned']||'',rightLabel,rightValue,y);y+=row;
+         metaCell('Points Used',metaMap['Points Used']||'',leftLabel,leftValue,y);metaCell('Ending Points',metaMap['Ending Points']||'',rightLabel,rightValue,y);
          y+=66;line(ctx,cardX,y,cardX+cardW,y,'#91aab5',1,[6,5]);y+=30;
 
          ctx.textAlign='left';ctx.font='700 34px Arial';ctx.fillStyle='#092f48';ctx.fillText('Services',64,y);y+=58;
