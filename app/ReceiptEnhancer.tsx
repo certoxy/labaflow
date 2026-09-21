@@ -51,7 +51,7 @@ export default function ReceiptEnhancer(){
       html=html.replace(/(<div><span>Payment<\/span><strong>.*?<\/strong><\/div>)/s,`$1${loyaltyRow}`);
      }
 
-     html=html.replace("<header><h1>LabaFlow</h1>",`<div class="receiptActions noPrint"><button onclick="downloadPdf()">↓ Download PDF</button><button onclick="shareReceipt()">↗ Share Image</button><button onclick="window.print()">🖨 Print</button></div><header><img class="receiptLogo" src="/labaflow-icon.svg" alt="LabaFlow"><h1>LabaFlow</h1>`);
+     html=html.replace("<header><h1>LabaFlow</h1>",`<div class="receiptActions noPrint"><button onclick="if(window.opener&&!window.opener.closed){window.opener.focus();window.close()}else{location.href='/order-details?id=${encodeURIComponent(orderId)}'}">← Back to Order</button><button onclick="downloadPdf()">↓ Download PDF</button><button onclick="shareReceipt()">↗ Share Image</button><button onclick="window.print()">🖨 Print</button></div><header><img class="receiptLogo" src="/labaflow-icon.svg" alt="LabaFlow"><h1>LabaFlow</h1>`);
 
      const extraCss=`
       :root{color-scheme:light}*{box-sizing:border-box}body{background:#f3f7f9!important;color:#0b2f47!important;margin:0 auto!important;padding:18px!important;max-width:760px!important;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif!important}
