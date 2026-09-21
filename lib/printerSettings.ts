@@ -73,7 +73,7 @@ function actualReceiptBytes(receipt:BluetoothReceipt){
  lines.push(center("Laundry Service Receipt"),rule,pair("Order",receipt.orderCode),pair("Date",new Date(receipt.createdAt).toLocaleString()),pair("Customer",receipt.customer));
  if(receipt.customerCode)lines.push(pair("Customer Code",receipt.customerCode));
  lines.push(pair("Status",receipt.status),pair("Payment",receipt.paymentStatus));
- if(receipt.loyalty)lines.push(pair("Points Earned",`+${receipt.loyalty.earned}`),pair("Points Used",`-${receipt.loyalty.used}`),pair("Total Customer Points",receipt.loyalty.balance));
+ if(receipt.loyalty){const beginning=Math.max(receipt.loyalty.balance-receipt.loyalty.earned+receipt.loyalty.used,0);lines.push(pair("Beginning Points",beginning),pair("Points Earned",`+${receipt.loyalty.earned}`),pair("Points Used",`-${receipt.loyalty.used}`),pair("Ending Points",receipt.loyalty.balance));}
  lines.push(rule,...lineItems("Services",receipt.items));
  if(receipt.products?.length)lines.push(rule,...lineItems("Products",receipt.products));
  lines.push(rule,pair("Subtotal",money(receipt.subtotal)));
