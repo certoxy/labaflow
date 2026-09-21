@@ -1,7 +1,7 @@
 export type ReceiptPrintFormat="standard"|"58mm";
 export type PrinterConnectionMode="system"|"web_bluetooth";
 export type PrinterSettings={defaultFormat:ReceiptPrintFormat;connectionMode:PrinterConnectionMode;deviceId:string|null;deviceName:string|null};
-export type BluetoothReceiptLine={name:string;quantity:number|string;unitPrice:number;lineTotal:number};
+export type BluetoothReceiptLine={name:string;quantity:number|string;unitPrice:number;lineTotal:number;pricingUnit?:string;loyaltyPointsPerUnit?:number;loyaltyPointsEarned?:number};
 export type BluetoothReceiptPayment={createdAt:string;method:string;amount:number;reference?:string|null};
 export type BluetoothReceipt={business:string;branch?:string;address?:string;phone?:string;orderCode:string;createdAt:string;customer:string;customerCode?:string;status:string;paymentStatus:string;items:BluetoothReceiptLine[];products?:BluetoothReceiptLine[];subtotal:number;discount:number;total:number;amountPaid:number;balance:number;loyalty?:{balance:number;earned:number;used:number};payments:BluetoothReceiptPayment[];notes?:string|null;footer?:string};
 
@@ -65,7 +65,7 @@ const center=(value:unknown)=>{const text=plain(value).slice(0,receiptWidth);ret
 const money=(value:number)=>`PHP ${Number(value||0).toLocaleString("en-PH",{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const pair=(left:unknown,right:unknown)=>{const r=plain(right).slice(0,receiptWidth),available=Math.max(1,receiptWidth-r.length-1),l=plain(left).slice(0,available);return `${l}${" ".repeat(Math.max(1,receiptWidth-l.length-r.length))}${r}`.slice(0,receiptWidth)};
 function wrapped(value:unknown,width=receiptWidth){const words=plain(value).split(" ").filter(Boolean),lines:string[]=[];let line="";for(const word of words){if(word.length>width){if(line){lines.push(line);line=""}for(let i=0;i<word.length;i+=width)lines.push(word.slice(i,i+width));continue}const next=line?`${line} ${word}`:word;if(next.length>width){if(line)lines.push(line);line=word}else line=next}if(line)lines.push(line);return lines.length?lines:[""]}
-function lineItems(title:string,items:BluetoothReceiptLine[]){if(!items.length)return[];const lines=[title.toUpperCase()];for(const item of items){lines.push(...wrapped(item.name));lines.push(pair(`${plain(item.quantity)} x ${money(item.unitPrice)}`,money(item.lineTotal)))}return lines}
+function lineItems(title:string,items:BluetoothReceiptLine[]){if(!items.length)return[];const lines=[title.toUpperCase()];for(const item of items){lines.push(...wrapped(item.name));lines.push(pair(`${plain(item.quantity)} x ${money(item.unitPrice)}`,money(item.lineTotal)));if(Number(item.loyaltyPointsEarned||0)>0)lines.push(...wrapped(`Points: ${plain(item.quantity)} ${plain(item.pricingUnit||"unit")}${Number(item.quantity)===1?"":"s"} x ${Number(item.loyaltyPointsPerUnit||0)} = ${Number(item.loyaltyPointsEarned||0)} pts`))}return lines}
 function actualReceiptBytes(receipt:BluetoothReceipt){
  const rule="-".repeat(receiptWidth),lines=[center(receipt.business)];
  if(receipt.branch&&plain(receipt.branch)!==plain(receipt.business))lines.push(center(receipt.branch));
