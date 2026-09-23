@@ -25,8 +25,13 @@ export async function POST(request:NextRequest){
  if(findError)return NextResponse.json({error:findError.message},{status:500});
  if(!tx)return NextResponse.json({error:"Subscription transaction not found"},{status:404});
  if(tx.status==="paid")return NextResponse.json({received:true,duplicate:true});
- const payment=session?.attributes?.payments?.[0],paidAmount=Number(payment?.attributes?.amount??0)/100;
- if(Math.abs(paidAmount-Number(tx.amount))>.001)return NextResponse.json({error:"Paid amount does not match the subscription transaction"},{status:409});
+ const payment=session?.attributes?.payments?.[0];
+ if(session?.attributes?.status!=="paid"||payment?.attributes?.status!=="paid")return NextResponse.json({error:"Checkout session is not paid"},{status:409});
+ const paymentAmount=Number(payment?.attributes?.amount);
+ const lineItems=Array.isArray(session?.attributes?.line_items)?session.attributes.line_items:[];
+ const lineItemAmount=lineItems.reduce((total:number,item:any)=>total+(Number(item?.amount)||0)*(Number(item?.quantity)||0),0);
+ const paidAmount=Number.isFinite(paymentAmount)&&paymentAmount>0?paymentAmount/100:lineItemAmount/100;
+ if(!paidAmount||Math.abs(paidAmount-Number(tx.amount))>.001)return NextResponse.json({error:"Paid amount does not match the subscription transaction"},{status:409});
  const now=new Date(),next=new Date(now);
  if(tx.billing_cycle==="yearly")next.setUTCFullYear(next.getUTCFullYear()+1);else next.setUTCMonth(next.getUTCMonth()+1);
  const {error:subscriptionError}=await db.from("organization_subscriptions").update({plan_key:tx.plan_key,billing_cycle:tx.billing_cycle,status:"active",billing_started_at:now.toISOString(),next_billing_at:next.toISOString(),updated_at:now.toISOString()}).eq("organization_id",tx.organization_id);
