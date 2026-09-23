@@ -18,7 +18,10 @@ export async function POST(request:NextRequest){
   const {data:checkout,error:prepareError}=await db.rpc("prepare_subscription_checkout",{p_plan_key:input.plan_key,p_billing_cycle:input.billing_cycle??"monthly",p_product_inventory_addon:Boolean(input.product_inventory_addon),p_billing_contact:input.billing_contact||null,p_billing_email:input.billing_email||null,p_notes:input.notes||null});
   if(prepareError)return reply({error:prepareError.message},400);
   transactionId=checkout.transaction_id;
-  const origin=process.env.NEXT_PUBLIC_APP_URL||request.nextUrl.origin;
+  // Always return the customer to the same LabaFlow deployment that created
+  // the checkout. This keeps Preview, staging, and production redirects from
+  // being mixed up by an environment variable copied from another service.
+  const origin=request.nextUrl.origin;
   const description=`${checkout.plan_name} ${checkout.billing_cycle} subscription${checkout.product_inventory_addon?" + Product & Inventory":""}`;
   const paymongoResponse=await fetch("https://api.paymongo.com/v1/checkout_sessions",{method:"POST",headers:{Authorization:`Basic ${Buffer.from(`${paymongoKey}:`).toString("base64")}`,"Content-Type":"application/json"},body:JSON.stringify({data:{attributes:{billing:{email:checkout.billing_email||undefined,name:input.billing_contact||undefined},cancel_url:`${origin}/organization/subscription?payment=cancelled`,description,line_items:[{amount:Math.round(Number(checkout.amount)*100),currency:"PHP",description,name:`LabaFlow ${checkout.plan_name}`,quantity:1}],payment_method_types:["card","gcash","grab_pay","paymaya","qrph"],reference_number:transactionId,send_email_receipt:true,show_description:true,show_line_items:true,success_url:`${origin}/organization/subscription?payment=success`,metadata:{subscription_transaction_id:transactionId,organization_id:checkout.organization_id}}}})});
   const paymongo=await paymongoResponse.json();
