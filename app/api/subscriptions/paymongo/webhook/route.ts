@@ -25,9 +25,16 @@ export async function POST(request:NextRequest){
  if(findError)return NextResponse.json({error:findError.message},{status:500});
  if(!tx)return NextResponse.json({error:"Subscription transaction not found"},{status:404});
  if(tx.status==="paid")return NextResponse.json({received:true,duplicate:true});
- const payment=session?.attributes?.payments?.[0];
- if(session?.attributes?.status!=="paid"||payment?.attributes?.status!=="paid")return NextResponse.json({error:"Checkout session is not paid"},{status:409});
- const paymentAmount=Number(payment?.attributes?.amount);
+ const intentId=session?.attributes?.payment_intent?.id;
+ let intent=session?.attributes?.payment_intent;
+ if(intentId){
+  const response=await fetch(`https://api.paymongo.com/v1/payment_intents/${intentId}`,{headers:{Authorization:`Basic ${Buffer.from(`${paymongoKey}:`).toString("base64")}`}});
+  if(response.ok)intent=(await response.json())?.data;
+ }
+ const payment=intent?.attributes?.payments?.[0]||session?.attributes?.payments?.[0];
+ const paymentIsPaid=payment?.attributes?.status==="paid"||intent?.attributes?.status==="succeeded";
+ if(!paymentIsPaid)return NextResponse.json({error:"Payment intent is not paid"},{status:409});
+ const paymentAmount=Number(payment?.attributes?.amount??intent?.attributes?.amount);
  const lineItems=Array.isArray(session?.attributes?.line_items)?session.attributes.line_items:[];
  const lineItemAmount=lineItems.reduce((total:number,item:any)=>total+(Number(item?.amount)||0)*(Number(item?.quantity)||0),0);
  const paidAmount=Number.isFinite(paymentAmount)&&paymentAmount>0?paymentAmount/100:lineItemAmount/100;
