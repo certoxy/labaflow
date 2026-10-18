@@ -19,6 +19,11 @@ type Org = {
   created_at: string;
   inventory_granted: boolean;
   owners: OrgOwner[];
+  contact_person: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  website: string | null;
 };
 
 type Admin = {
@@ -195,17 +200,41 @@ export default function PlatformAdminPage() {
             <div>
               <strong>{org.name}</strong>
               <small>{org.slug}</small>
-              {(org.owners ?? []).length > 0 ? (
-                org.owners.map((owner) => (
-                  <small key={owner.user_id}>
-                    <b>Org Owner:</b> {owner.full_name || "Name not provided"} ·{" "}
-                    <a href={`mailto:${owner.email}`}>{owner.email}</a> ·{" "}
-                    {owner.active ? "Active" : "Inactive"}
-                  </small>
-                ))
-              ) : (
-                <small><b>Org Owner:</b> Not assigned</small>
-              )}
+              <div className="orgContactDetails">
+                <div>
+                  <span>Organization owner</span>
+                  {(org.owners ?? []).length > 0 ? (
+                    org.owners.map((owner) => (
+                      <div className="orgOwnerEntry" key={owner.user_id}>
+                        <b>{owner.full_name || "Name not provided"}</b>
+                        <a href={`mailto:${owner.email}`}>{owner.email}</a>
+                        <small>{owner.active ? "Active account" : "Inactive account"}</small>
+                      </div>
+                    ))
+                  ) : (
+                    <b>Not assigned</b>
+                  )}
+                </div>
+                <div>
+                  <span>Business contact</span>
+                  <b>{org.contact_person || "Not provided"}</b>
+                  <a href={org.phone ? `tel:${org.phone}` : undefined}>
+                    {org.phone || "Phone not provided"}
+                  </a>
+                  <a href={org.email ? `mailto:${org.email}` : undefined}>
+                    {org.email || "Email not provided"}
+                  </a>
+                </div>
+                <div>
+                  <span>Address & website</span>
+                  <b>{org.address || "Address not provided"}</b>
+                  {org.website ? (
+                    <a href={org.website} target="_blank" rel="noreferrer">{org.website}</a>
+                  ) : (
+                    <small>Website not provided</small>
+                  )}
+                </div>
+              </div>
             </div>
             <button className="miniBtn" disabled={!org.active} onClick={() => support(org)}>Support Mode</button>
             <span className={org.inventory_granted ? "status active" : "status inactive"}>
