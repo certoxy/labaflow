@@ -1,7 +1,8 @@
 "use client";
 import {useEffect,useState} from "react";
 import {supabase} from "../../lib/supabase";
-type OrgOwner={user_id:string;email:string;full_name:string|null;active:boolean;membership_created_at:string};\ntype Org={id:string;name:string;slug:string;active:boolean;created_at:string;inventory_granted:boolean;owners:OrgOwner[];contact_person:string|null;phone:string|null;email:string|null;address:string|null;website:string|null};
+type OrgOwner={user_id:string;email:string;full_name:string|null;active:boolean;membership_created_at:string};
+type Org={id:string;name:string;slug:string;active:boolean;created_at:string;inventory_granted:boolean;owners:OrgOwner[];contact_person:string|null;phone:string|null;email:string|null;address:string|null;website:string|null};
 type Admin={user_id:string;email:string;full_name:string|null;active:boolean;granted_at:string};
 type BootstrapStatus={bootstrap_available:boolean;is_platform_admin:boolean};
 export default function PlatformAdminPage(){
