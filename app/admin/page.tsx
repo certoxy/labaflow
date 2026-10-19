@@ -24,6 +24,7 @@ type Org = {
   email: string | null;
   address: string | null;
   website: string | null;
+  business_type: "laundry" | "car_wash";
 };
 
 type Admin = {
@@ -199,7 +200,7 @@ export default function PlatformAdminPage() {
           <div className="adminRow" key={org.id}>
             <div>
               <strong>{org.name}</strong>
-              <small>{org.slug}</small>
+              <small>{org.slug} · {org.business_type==="car_wash"?"Car Wash":"Laundry"}</small>
               <div className="orgContactDetails">
                 <div>
                   <span>Organization owner</span>
